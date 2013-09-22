@@ -222,10 +222,9 @@ instance (Enum a) => Enum (SelectEnum a) where
 
 -- | Derive a collection from an enumerable type
 selectEnum :: (Show a, Read a, Bounded a, Enum a) => a -> [(Text, Text)]
-selectEnum v = map (\x -> let x' = T.pack $ show x in (x',x')) [min..max]
+selectEnum v = map (\x -> let x' = T.pack $ show x in (x', humanize x')) opts
 	where
-	min = minBound `asTypeOf` v
-	max = maxBound `asTypeOf` v
+	opts = [minBound `asTypeOf` v .. maxBound `asTypeOf` v]
 
 -- | Feed a collection 'Widget' from an enumerable type
 enum :: (Show a, Read a, Bounded a, Enum a) => ([(Text, Text)] -> Widget Text) -> Widget a
