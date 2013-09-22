@@ -72,7 +72,7 @@ type Renderer = (RenderOptions -> Html)
 -- | 'InputOptions' that have been prepped for rendering
 data RenderOptions = RenderOptions {
 		name :: Text,
-		widgetHtml :: Html,
+		widgetHtml :: [Html],
 		errors :: [Html],
 		options :: InputOptions
 	}
@@ -212,52 +212,62 @@ instance (Show a, Read a, Bounded a, Enum a) => DefaultWidget (SelectEnum a) whe
 		where
 		v' = fmap (\(SelectEnum x) -> x) v
 
-type Widget a = (Maybe a -> Maybe Text -> Text -> InputOptions -> Html)
+-- | The type of a widget renderer
+--
+-- The return type is a list so that the renderer may optionally render many
+-- seperately-labeled controls.
+--
+-- A single-element return indicates a single, unlabeled, control.
+type Widget a = (Maybe a -> Maybe Text -> Text -> InputOptions -> [Html])
 
 text :: Widget Text
-text v u n = input_tag n (v <|> u) (T.pack "text") []
+text v u n = return . input_tag n (v <|> u) (T.pack "text") []
 
 password :: Widget Text
-password v u n = input_tag n (v <|> u) (T.pack "password") []
+password v u n = return . input_tag n (v <|> u) (T.pack "password") []
 
 search :: Widget Text
-search v u n = input_tag n (v <|> u) (T.pack "search") []
+search v u n = return . input_tag n (v <|> u) (T.pack "search") []
 
 email :: Widget Text
-email v u n = input_tag n (v <|> u) (T.pack "email") []
+email v u n = return . input_tag n (v <|> u) (T.pack "email") []
 
 url :: Widget Text
-url v u n = input_tag n (v <|> u) (T.pack "url") []
+url v u n = return . input_tag n (v <|> u) (T.pack "url") []
 
 tel :: Widget Text
-tel v u n = input_tag n (v <|> u) (T.pack "tel") []
+tel v u n = return . input_tag n (v <|> u) (T.pack "tel") []
 
 number :: (Num a, Show a) => Widget a
-number v u n = input_tag n (fmap (T.pack . show) v <|> u) (T.pack "number") [
+number v u n =
+	return . input_tag n (fmap (T.pack . show) v <|> u) (T.pack "number") [
 		[(T.pack "step", T.pack "any")]
 	]
 
 integral :: (Integral a, Show a) => Widget a
-integral v u n = input_tag n (fmap (T.pack . show) v <|> u) (T.pack "number") [
+integral v u n =
+	return . input_tag n (fmap (T.pack . show) v <|> u) (T.pack "number") [
 		[(T.pack "step", T.pack "1")]
 	]
 
 boundedNumber :: (Bounded a, Num a, Show a) => Widget a
-boundedNumber v u n = input_tag n (fmap (T.pack . show) v <|> u) (T.pack "number") [
+boundedNumber v u n =
+	return . input_tag n (fmap (T.pack . show) v <|> u) (T.pack "number") [
 		[(T.pack "step", T.pack "any")],
 		[(T.pack "min", T.pack $ show (minBound `asTypeOf` fromJust v))],
 		[(T.pack "max", T.pack $ show (maxBound `asTypeOf` fromJust v))]
 	]
 
 boundedIntegral :: (Bounded a, Integral a, Show a) => Widget a
-boundedIntegral v u n = input_tag n (fmap (T.pack . show) v <|> u) (T.pack "number") [
+boundedIntegral v u n =
+	return . input_tag n (fmap (T.pack . show) v <|> u) (T.pack "number") [
 		[(T.pack "step", T.pack "1")],
 		[(T.pack "min", T.pack $ show (minBound `asTypeOf` fromJust v))],
 		[(T.pack "max", T.pack $ show (maxBound `asTypeOf` fromJust v))]
 	]
 
 textarea :: Widget Text
-textarea v u n (InputOptions {disabled = d, required = r, input_html =    iattrs}) =
+textarea v u n (InputOptions {disabled = d, required = r, input_html =    iattrs}) = return $
 	applyAttrs [
 		[(T.pack "disabled", T.pack "disabled") | d],
 		[(T.pack "required", T.pack "required") | r],
@@ -269,44 +279,45 @@ textarea v u n (InputOptions {disabled = d, required = r, input_html =    iattrs
 	)
 
 hidden :: Widget Text
-hidden v u n = input_tag n (v <|> u) (T.pack "hidden") []
+hidden v u n = return . input_tag n (v <|> u) (T.pack "hidden") []
 
 file :: Widget Text
-file v u n = input_tag n (v <|> u) (T.pack "file") []
+file v u n = return . input_tag n (v <|> u) (T.pack "file") []
 
 checkbox :: Widget Bool
-checkbox v u n = input_tag n Nothing (T.pack "checkbox") [
+checkbox v u n = return . input_tag n Nothing (T.pack "checkbox") [
 		[(T.pack "checked", T.pack "checked") | isChecked]
 	]
 	where
 	isChecked = fromMaybe (maybe False (/=mempty) u) v
 
 date :: (FormatTime a) => Widget a
-date v u n = input_tag n (fmap fmt v <|> u) (T.pack "date") []
+date v u n = return . input_tag n (fmap fmt v <|> u) (T.pack "date") []
 	where
 	fmt = T.pack . formatTime defaultTimeLocale format
 	format = iso8601DateFormat Nothing
 
 time :: (FormatTime a) => Widget a
-time v u n = input_tag n (fmap fmt v <|> u) (T.pack "time") []
+time v u n = return . input_tag n (fmap fmt v <|> u) (T.pack "time") []
 	where
 	fmt = T.pack . formatTime defaultTimeLocale format
 	format = "%H:%M:%S%Q"
 
 datetime :: (FormatTime a) => Widget a
-datetime v u n = input_tag n (fmap fmt v <|> u) (T.pack "datetime") []
+datetime v u n = return . input_tag n (fmap fmt v <|> u) (T.pack "datetime") []
 	where
 	fmt = T.pack . formatTime defaultTimeLocale format
 	format = iso8601DateFormat $ Just "%H:%M:%S%Q%z"
 
 datetime_local :: (FormatTime a) => Widget a
-datetime_local v u n = input_tag n (fmap fmt v <|> u) (T.pack "datetime-local") []
+datetime_local v u n =
+	return . input_tag n (fmap fmt v <|> u) (T.pack "datetime-local") []
 	where
 	fmt = T.pack . formatTime defaultTimeLocale format
 	format = iso8601DateFormat $ Just "%H:%M:%S%Q"
 
 select :: [(Text, Text)] -> Widget Text
-select collection v u n (InputOptions {disabled = d, required = r, input_html = iattrs}) =
+select collection v u n (InputOptions {disabled = d, required = r, input_html = iattrs}) = return $
 	applyAttrs [
 		[(T.pack "disabled", T.pack "disabled") | d],
 		[(T.pack "required", T.pack "required") | r]
