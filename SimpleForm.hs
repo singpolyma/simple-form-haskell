@@ -26,6 +26,7 @@ module SimpleForm (
 	datetime_local,
 	-- ** Collections
 	select,
+	radio_buttons,
 	-- ** Wrappers
 	ShowRead(..),
 	SelectEnum(..),
@@ -350,6 +351,15 @@ select collection v u n (InputOptions {disabled = d, required = r, input_html = 
 					HTML.toHtml label
 	)
 
+radio_buttons :: [(Text, Text)] -> Widget Text
+radio_buttons collection v u n opt =
+	map radio collection
+	where
+	radio (value, label) = HTML.label $ do
+		mkChecked (Just value == v) $
+			input_tag n (Just value) (T.pack "radio") [] opt
+		HTML.toHtml label
+
 -- | <input />
 input_tag ::
 	Text               -- ^ name
@@ -372,6 +382,10 @@ input_tag n v t dattr (InputOptions {disabled = d, required = r, input_html = ia
 mkSelected :: Bool -> Html -> Html
 mkSelected True = (! HTML.selected (toValue "selected"))
 mkSelected False = id
+
+mkChecked :: Bool -> Html -> Html
+mkChecked True = (! HTML.checked (toValue "checked"))
+mkChecked False = id
 
 mkAttribute :: (Text,Text) -> HTML.Attribute
 mkAttribute (k,v) = HTML.customAttribute (HTML.textTag k) (toValue v)
