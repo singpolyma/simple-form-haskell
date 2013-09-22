@@ -24,6 +24,11 @@ module SimpleForm (
 	time,
 	datetime,
 	datetime_local,
+	-- ** Collections
+	select,
+	-- ** Wrappers
+	ShowRead(..),
+	SelectEnum(..),
 	-- * Options
 	InputOptions(..),
 	Label(..),
@@ -33,6 +38,7 @@ module SimpleForm (
 	renderOptions,
 	-- * Helpers
 	input_tag,
+	selectEnum,
 	humanize,
 	applyAttrs
 ) where
@@ -41,7 +47,7 @@ import Data.Maybe
 import Data.Monoid
 import Data.Ratio
 import Data.Function (on)
-import Data.Foldable (foldl')
+import Data.Foldable (foldl', forM_)
 import Data.List (nubBy)
 import Control.Applicative ((<|>))
 import Control.Monad (join)
@@ -183,13 +189,28 @@ instance (DefaultWidget a, DefaultWidget b) => DefaultWidget (a, b) where
 instance (DefaultWidget a) => DefaultWidget (Maybe a) where
 	wdef = wdef . join
 
+-- | Wrapper for types that should be rendered using 'show'
+newtype ShowRead a = ShowRead a
+
 instance (Show a, Read a) => DefaultWidget (ShowRead a) where
 	wdef = text . fmap (T.pack . show . unShowRead)
 		where
 		unShowRead (ShowRead x) = x
 
--- | Wrapper for types that should be rendered using 'show'
-newtype ShowRead a = ShowRead a
+-- | Wrapper for select boxes on enumerable types
+newtype SelectEnum a = SelectEnum a
+
+-- | Derive a collection from an enumerable type
+selectEnum :: (Show a, Read a, Bounded a, Enum a) => a -> [(Text, Text)]
+selectEnum v = map (\x -> let x' = T.pack $ show x in (x',x')) [min..max]
+	where
+	min = minBound `asTypeOf` v
+	max = maxBound `asTypeOf` v
+
+instance (Show a, Read a, Bounded a, Enum a) => DefaultWidget (SelectEnum a) where
+	wdef v = select (selectEnum $ fromJust v') (fmap (T.pack . show) v')
+		where
+		v' = fmap (\(SelectEnum x) -> x) v
 
 type Widget a = (Maybe a -> Maybe Text -> Text -> InputOptions -> Html)
 
@@ -284,6 +305,19 @@ datetime_local v u n = input_tag n (fmap fmt v <|> u) (T.pack "datetime-local") 
 	fmt = T.pack . formatTime defaultTimeLocale format
 	format = iso8601DateFormat $ Just "%H:%M:%S%Q"
 
+select :: [(Text, Text)] -> Widget Text
+select collection v u n (InputOptions {disabled = d, required = r, input_html = iattrs}) =
+	applyAttrs [
+		[(T.pack "disabled", T.pack "disabled") | d],
+		[(T.pack "required", T.pack "required") | r]
+	] iattrs (
+		HTML.select ! HTML.name (toValue n) $
+			forM_ collection $ \(value, label) ->
+				mkSelected (Just value == v) $
+				HTML.option ! HTML.value (toValue value) $
+					HTML.toHtml label
+	)
+
 -- | <input />
 input_tag ::
 	Text               -- ^ name
@@ -302,6 +336,10 @@ input_tag n v t dattr (InputOptions {disabled = d, required = r, input_html = ia
 		HTML.input !
 			HTML.name (toValue n)
 	)
+
+mkSelected :: Bool -> Html -> Html
+mkSelected True = (! HTML.selected (toValue "selected"))
+mkSelected False = id
 
 mkAttribute :: (Text,Text) -> HTML.Attribute
 mkAttribute (k,v) = HTML.customAttribute (HTML.textTag k) (toValue v)
