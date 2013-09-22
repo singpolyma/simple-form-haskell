@@ -38,6 +38,8 @@ import Data.Foldable (foldl')
 import Data.List (nubBy)
 import Control.Applicative ((<|>))
 import Control.Monad (join)
+import Data.Time (UTCTime, LocalTime, ZonedTime, Day, TimeOfDay, formatTime, FormatTime)
+import System.Locale (defaultTimeLocale, iso8601DateFormat)
 import Text.Blaze.XHtml5 (Html, (!), toValue)
 import qualified Text.Blaze.XHtml5 as HTML
 import qualified Text.Blaze.XHtml5.Attributes as HTML hiding (label, span)
@@ -150,6 +152,21 @@ instance DefaultWidget Float where
 instance DefaultWidget Double where
 	wdef = number
 
+instance DefaultWidget UTCTime where
+	wdef = datetime
+
+instance DefaultWidget ZonedTime where
+	wdef = datetime
+
+instance DefaultWidget LocalTime where
+	wdef = datetime_local
+
+instance DefaultWidget Day where
+	wdef = date
+
+instance DefaultWidget TimeOfDay where
+	wdef = time
+
 instance (Integral a, Show a) => DefaultWidget (Ratio a) where
 	wdef = number
 
@@ -235,6 +252,30 @@ checkbox v u n = input_tag n Nothing (T.pack "checkbox") [
 	]
 	where
 	isChecked = fromMaybe (maybe False (/=mempty) u) v
+
+date :: (FormatTime a) => Widget a
+date v u n = input_tag n (fmap fmt v <|> u) (T.pack "date") []
+	where
+	fmt = T.pack . formatTime defaultTimeLocale format
+	format = iso8601DateFormat Nothing
+
+time :: (FormatTime a) => Widget a
+time v u n = input_tag n (fmap fmt v <|> u) (T.pack "time") []
+	where
+	fmt = T.pack . formatTime defaultTimeLocale format
+	format = "%H:%M:%S%Q"
+
+datetime :: (FormatTime a) => Widget a
+datetime v u n = input_tag n (fmap fmt v <|> u) (T.pack "datetime") []
+	where
+	fmt = T.pack . formatTime defaultTimeLocale format
+	format = iso8601DateFormat $ Just "%H:%M:%S%Q%z"
+
+datetime_local :: (FormatTime a) => Widget a
+datetime_local v u n = input_tag n (fmap fmt v <|> u) (T.pack "datetime-local") []
+	where
+	fmt = T.pack . formatTime defaultTimeLocale format
+	format = iso8601DateFormat $ Just "%H:%M:%S%Q"
 
 -- | <input />
 input_tag ::
