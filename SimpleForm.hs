@@ -3,20 +3,27 @@ module SimpleForm (
 	Widget,
 	DefaultWidget(..),
 	-- * Widgets
+	hidden,
+	checkbox,
+	file,
+	-- ** Text-like
 	text,
+	textarea,
 	password,
 	search,
 	email,
 	url,
 	tel,
+	-- ** Numbers
 	number,
 	integral,
 	boundedNumber,
 	boundedIntegral,
-	textarea,
-	hidden,
-	file,
-	checkbox,
+	-- ** Dates and times
+	date,
+	time,
+	datetime,
+	datetime_local,
 	-- * Options
 	InputOptions(..),
 	Label(..),
