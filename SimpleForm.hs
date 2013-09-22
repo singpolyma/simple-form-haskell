@@ -4,6 +4,18 @@ module SimpleForm (
 	DefaultWidget(..),
 	-- * Widgets
 	text,
+	password,
+	search,
+	email,
+	url,
+	tel,
+	number,
+	integral,
+	boundedNumber,
+	boundedIntegral,
+	textarea,
+	hidden,
+	file,
 	checkbox,
 	-- * Options
 	InputOptions(..),
@@ -20,10 +32,12 @@ module SimpleForm (
 
 import Data.Maybe
 import Data.Monoid
+import Data.Ratio
 import Data.Function (on)
 import Data.Foldable (foldl')
 import Data.List (nubBy)
 import Control.Applicative ((<|>))
+import Control.Monad (join)
 import Text.Blaze.XHtml5 (Html, (!), toValue)
 import qualified Text.Blaze.XHtml5 as HTML
 import qualified Text.Blaze.XHtml5.Attributes as HTML hiding (label, span)
@@ -121,10 +135,99 @@ instance DefaultWidget Bool where
 instance DefaultWidget Text where
 	wdef = text
 
+instance DefaultWidget Char where
+	wdef = text . fmap T.singleton
+
+instance DefaultWidget Integer where
+	wdef = integral
+
+instance DefaultWidget Int where
+	wdef = boundedIntegral
+
+instance DefaultWidget Float where
+	wdef = number
+
+instance DefaultWidget Double where
+	wdef = number
+
+instance (Integral a, Show a) => DefaultWidget (Ratio a) where
+	wdef = number
+
+instance (DefaultWidget a, DefaultWidget b) => DefaultWidget (a, b) where
+	wdef v u n opt = wdef (fmap fst v) u n opt `mappend` wdef (fmap snd v) u n opt
+
+instance (DefaultWidget a) => DefaultWidget (Maybe a) where
+	wdef = wdef . join
+
+instance (Show a, Read a) => DefaultWidget (ShowRead a) where
+	wdef = text . fmap (T.pack . show . unShowRead)
+		where
+		unShowRead (ShowRead x) = x
+
+-- | Wrapper for types that should be rendered using 'show'
+newtype ShowRead a = ShowRead a
+
 type Widget a = (Maybe a -> Maybe Text -> Text -> InputOptions -> Html)
 
 text :: Widget Text
 text v u n = input_tag n (v <|> u) (T.pack "text") []
+
+password :: Widget Text
+password v u n = input_tag n (v <|> u) (T.pack "password") []
+
+search :: Widget Text
+search v u n = input_tag n (v <|> u) (T.pack "search") []
+
+email :: Widget Text
+email v u n = input_tag n (v <|> u) (T.pack "email") []
+
+url :: Widget Text
+url v u n = input_tag n (v <|> u) (T.pack "url") []
+
+tel :: Widget Text
+tel v u n = input_tag n (v <|> u) (T.pack "tel") []
+
+number :: (Num a, Show a) => Widget a
+number v u n = input_tag n (fmap (T.pack . show) v <|> u) (T.pack "number") [
+		[(T.pack "step", T.pack "any")]
+	]
+
+integral :: (Integral a, Show a) => Widget a
+integral v u n = input_tag n (fmap (T.pack . show) v <|> u) (T.pack "number") [
+		[(T.pack "step", T.pack "1")]
+	]
+
+boundedNumber :: (Bounded a, Num a, Show a) => Widget a
+boundedNumber v u n = input_tag n (fmap (T.pack . show) v <|> u) (T.pack "number") [
+		[(T.pack "step", T.pack "any")],
+		[(T.pack "min", T.pack $ show (minBound `asTypeOf` fromJust v))],
+		[(T.pack "max", T.pack $ show (maxBound `asTypeOf` fromJust v))]
+	]
+
+boundedIntegral :: (Bounded a, Integral a, Show a) => Widget a
+boundedIntegral v u n = input_tag n (fmap (T.pack . show) v <|> u) (T.pack "number") [
+		[(T.pack "step", T.pack "1")],
+		[(T.pack "min", T.pack $ show (minBound `asTypeOf` fromJust v))],
+		[(T.pack "max", T.pack $ show (maxBound `asTypeOf` fromJust v))]
+	]
+
+textarea :: Widget Text
+textarea v u n (InputOptions {disabled = d, required = r, input_html =    iattrs}) =
+	applyAttrs [
+		[(T.pack "disabled", T.pack "disabled") | d],
+		[(T.pack "required", T.pack "required") | r],
+		[(T.pack "rows", T.pack "10")],
+		[(T.pack "cols", T.pack "55")]
+	] iattrs (
+		HTML.textarea ! HTML.name (toValue n) $
+			maybe mempty HTML.toHtml (v <|> u)
+	)
+
+hidden :: Widget Text
+hidden v u n = input_tag n (v <|> u) (T.pack "hidden") []
+
+file :: Widget Text
+file v u n = input_tag n (v <|> u) (T.pack "file") []
 
 checkbox :: Widget Bool
 checkbox v u n = input_tag n Nothing (T.pack "checkbox") [
