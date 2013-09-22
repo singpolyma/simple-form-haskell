@@ -28,6 +28,7 @@ module SimpleForm (
 	select,
 	multi_select,
 	radio_buttons,
+	checkboxes,
 	-- ** Wrappers
 	ShowRead(..),
 	SelectEnum(..),
@@ -389,6 +390,16 @@ radio_buttons collection v u n opt =
 	radio (value, label) = HTML.label $ do
 		mkChecked (Just value == v) $
 			input_tag n (Just value) (T.pack "radio") [] opt
+		HTML.toHtml label
+
+checkboxes :: [(Text, Text)] -> Widget [Text]
+checkboxes collection v u n opt =
+	map check collection
+	where
+	items = fromMaybe [] v
+	check (value, label) = HTML.label $ do
+		mkChecked (value `elem` items) $
+			input_tag n (Just value) (T.pack "checkbox") [] opt
 		HTML.toHtml label
 
 -- | <input />
