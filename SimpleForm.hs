@@ -39,6 +39,7 @@ module SimpleForm (
 	-- * Helpers
 	input_tag,
 	selectEnum,
+	enum,
 	humanize,
 	applyAttrs
 ) where
@@ -192,13 +193,31 @@ instance (DefaultWidget a) => DefaultWidget (Maybe a) where
 -- | Wrapper for types that should be rendered using 'show'
 newtype ShowRead a = ShowRead a
 
+instance (Show a, Read a) => Show (ShowRead a) where
+	show (ShowRead x) = show x
+
+instance (Read a) => Read (ShowRead a) where
+	readsPrec n s = map (\(v,s') -> (ShowRead v, s')) (readsPrec n s)
+
 instance (Show a, Read a) => DefaultWidget (ShowRead a) where
-	wdef = text . fmap (T.pack . show . unShowRead)
-		where
-		unShowRead (ShowRead x) = x
+	wdef = text . fmap (T.pack . show)
 
 -- | Wrapper for select boxes on enumerable types
 newtype SelectEnum a = SelectEnum a
+
+instance (Show a, Read a) => Show (SelectEnum a) where
+	show (SelectEnum x) = show x
+
+instance (Read a) => Read (SelectEnum a) where
+	readsPrec n s = map (\(v,s') -> (SelectEnum v, s')) (readsPrec n s)
+
+instance (Bounded a) => Bounded (SelectEnum a) where
+	minBound = SelectEnum minBound
+	maxBound = SelectEnum maxBound
+
+instance (Enum a) => Enum (SelectEnum a) where
+	toEnum = SelectEnum . toEnum
+	fromEnum (SelectEnum x) = fromEnum x
 
 -- | Derive a collection from an enumerable type
 selectEnum :: (Show a, Read a, Bounded a, Enum a) => a -> [(Text, Text)]
@@ -207,10 +226,12 @@ selectEnum v = map (\x -> let x' = T.pack $ show x in (x',x')) [min..max]
 	min = minBound `asTypeOf` v
 	max = maxBound `asTypeOf` v
 
+-- | Feed a collection 'Widget' from an enumerable type
+enum :: (Show a, Read a, Bounded a, Enum a) => ([(Text, Text)] -> Widget Text) -> Widget a
+enum w v = w (selectEnum $ fromJust v) (fmap (T.pack . show) v)
+
 instance (Show a, Read a, Bounded a, Enum a) => DefaultWidget (SelectEnum a) where
-	wdef v = select (selectEnum $ fromJust v') (fmap (T.pack . show) v')
-		where
-		v' = fmap (\(SelectEnum x) -> x) v
+	wdef = enum select
 
 -- | The type of a widget renderer
 --
