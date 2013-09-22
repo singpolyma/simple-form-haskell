@@ -26,6 +26,7 @@ module SimpleForm (
 	datetime_local,
 	-- ** Collections
 	select,
+	multi_select,
 	radio_buttons,
 	-- ** Wrappers
 	ShowRead(..),
@@ -41,6 +42,7 @@ module SimpleForm (
 	input_tag,
 	selectEnum,
 	enum,
+	multiEnum,
 	humanize,
 	applyAttrs
 ) where
@@ -145,21 +147,31 @@ humanize = id -- TODO
 -- | Infer a widget based on type
 class DefaultWidget a where
 	wdef :: Widget a
+	wdefList :: Widget [a]
+	wdefList _ _ _ _ =
+		-- Some things just can't be multi-selected (like Text)
+		[HTML.p $ HTML.toHtml "No useful multi-select box for this type."]
+
+instance (DefaultWidget a) => DefaultWidget [a] where
+	wdef = wdefList
 
 instance DefaultWidget Bool where
 	wdef = checkbox
+	wdefList = wdefList . fmap (map SelectEnum)
 
 instance DefaultWidget Text where
 	wdef = text
 
 instance DefaultWidget Char where
 	wdef = text . fmap T.singleton
+	wdefList = text . fmap T.pack -- Heh, hack for 'String'
 
 instance DefaultWidget Integer where
 	wdef = integral
 
 instance DefaultWidget Int where
 	wdef = boundedIntegral
+	wdefList = wdefList . fmap (map SelectEnum)
 
 instance DefaultWidget Float where
 	wdef = number
@@ -230,8 +242,13 @@ selectEnum v = map (\x -> let x' = T.pack $ show x in (x', humanize x')) opts
 enum :: (Show a, Read a, Bounded a, Enum a) => ([(Text, Text)] -> Widget Text) -> Widget a
 enum w v = w (selectEnum $ fromJust v) (fmap (T.pack . show) v)
 
+-- | Feed a multi-select collection 'Widget' from an enumerable type
+multiEnum :: (Show a, Read a, Bounded a, Enum a) => ([(Text, Text)] -> Widget [Text]) -> Widget [a]
+multiEnum w v = w (selectEnum $ head $ fromJust v) (fmap (fmap (T.pack . show)) v)
+
 instance (Show a, Read a, Bounded a, Enum a) => DefaultWidget (SelectEnum a) where
 	wdef = enum select
+	wdefList = multiEnum multi_select
 
 -- | The type of a widget renderer
 --
@@ -349,6 +366,21 @@ select collection v u n (InputOptions {disabled = d, required = r, input_html = 
 				HTML.option ! HTML.value (toValue value) $
 					HTML.toHtml label
 	)
+
+multi_select :: [(Text, Text)] -> Widget [Text]
+multi_select collection v u n (InputOptions {disabled = d, required = r, input_html = iattrs}) = return $
+	applyAttrs [
+		[(T.pack "disabled", T.pack "disabled") | d],
+		[(T.pack "required", T.pack "required") | r]
+	] iattrs (
+		HTML.select ! HTML.name (toValue n) ! HTML.multiple (toValue "multiple") $
+			forM_ collection $ \(value, label) ->
+				mkSelected (value `elem` items) $
+				HTML.option ! HTML.value (toValue value) $
+					HTML.toHtml label
+	)
+	where
+	items = fromMaybe [] v
 
 radio_buttons :: [(Text, Text)] -> Widget Text
 radio_buttons collection v u n opt =
