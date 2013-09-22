@@ -1,20 +1,34 @@
 -- | Forms that configure themseles based on type
 module SimpleForm (
-	InputOptions(..),
+	Widget,
+	DefaultWidget(..),
+	-- * Widgets
 	text,
 	checkbox,
+	-- * Options
+	InputOptions(..),
 	Label(..),
+	-- * Rendering
+	Renderer,
+	RenderOptions(..),
+	renderOptions,
+	-- * Helpers
+	input_tag,
 	humanize,
-	RenderOptions,
-	renderInputOptions,
+	applyAttrs
 ) where
 
 import Data.Maybe
 import Data.Monoid
+import Data.Function (on)
+import Data.Foldable (foldl')
+import Data.List (nubBy)
+import Control.Applicative ((<|>))
 import Text.Blaze.XHtml5 (Html, (!), toValue)
 import qualified Text.Blaze.XHtml5 as HTML
 import qualified Text.Blaze.XHtml5.Attributes as HTML hiding (label, span)
 import Data.Text (Text)
+import qualified Data.Text as T
 import Data.String
 
 -- | A block label, inline label, or implied value label
@@ -24,72 +38,51 @@ data Label = Label Text | InlineLabel Text | DefaultLabel
 instance IsString Label where
 	fromString = Label . fromString
 
+type Renderer = (RenderOptions -> Html)
+
 -- | 'InputOptions' that have been prepped for rendering
 data RenderOptions = RenderOptions {
-		render_name :: Text,
-		render_label :: Maybe Label,
-		render_hint :: Maybe Text,
-		render_required :: Bool,
-		render_disabled :: Bool,
-		render_as :: Maybe Html,
-		render_input_html :: [(Text,Text)],
-		render_label_html :: [(Text,Text)],
-		render_error_html :: [(Text,Text)],
-		render_hint_html :: [(Text,Text)],
-		render_wrapper_html :: [(Text,Text)],
-		render_errors :: [Html]
+		name :: Text,
+		widgetHtml :: Html,
+		errors :: [Html],
+		options :: InputOptions
 	}
 
 -- | Prep 'InputOptions' for rendering
-renderInputOptions ::
-	Maybe Text    -- ^ The unparsed value for this input (if available)
-	-> [Html]     -- ^ Any error messages for this input
-	-> InputOptions a
+renderOptions ::
+	Maybe a          -- ^ The parsed value for this input (if available)
+	-> Maybe Text    -- ^ The unparsed value for this input (if available)
+	-> Text          -- ^ The name of this input
+	-> Widget a      -- ^ Widget to render with
+	-> [Html]        -- ^ Any error messages for this input
+	-> InputOptions
 	-> RenderOptions
-renderInputOptions unparsed errors opt = RenderOptions {
-		render_name = name opt,
-		render_label = label opt,
-		render_hint = hint opt,
-		render_required = required opt,
-		render_disabled = disabled opt,
-		render_as = fmap (\f -> f unparsed opt) (as opt),
-		render_input_html = input_html opt,
-		render_label_html = label_html opt,
-		render_error_html = error_html opt,
-		render_hint_html = hint_html opt,
-		render_wrapper_html = wrapper_html opt,
-		render_errors = errors
+renderOptions v u n w errors opt = RenderOptions {
+		name = n,
+		widgetHtml = w v u n opt,
+		errors = errors,
+		options = opt
 	}
 
 -- | The setup for rendering an input. Blank is 'mempty', default is 'def'.
-data InputOptions a = InputOptions {
-		name :: Text,
-		value :: Maybe a,
+data InputOptions = InputOptions {
 		label :: Maybe Label,
 		hint :: Maybe Text,
 		required :: Bool,
 		disabled :: Bool,
-		as :: Maybe (Maybe Text -> InputOptions a -> Html),
 		input_html :: [(Text,Text)],
 		label_html :: [(Text,Text)],
 		error_html :: [(Text,Text)],
 		hint_html :: [(Text,Text)],
 		wrapper_html :: [(Text,Text)]
-	}
+	} deriving (Show, Eq)
 
-instance (Show a) => Show (InputOptions a) where
-	show (InputOptions {name = n, value = v}) =
-		"InputOptions { name = " ++ show n ++ ", value = " ++ show v ++ " }"
-
-instance Monoid (InputOptions a) where
+instance Monoid InputOptions where
 	mempty = InputOptions {
-		name = mempty,
-		value = Nothing,
 		label = Just DefaultLabel,
 		hint = Nothing,
 		required = True,
 		disabled = False,
-		as = Nothing,
 		input_html = [],
 		label_html = [],
 		error_html = [],
@@ -98,13 +91,10 @@ instance Monoid (InputOptions a) where
 	}
 
 	mappend a b = InputOptions {
-		name = monoidOr (name b) (name a),
-		value = case value b of { Nothing -> value a; _ -> value b},
 		label = if label b == Just DefaultLabel then label a else label b,
 		hint = monoidOr (hint b) (hint a),
 		required = if required b then required a else required b,
 		disabled = if not (disabled b) then disabled a else disabled b,
-		as = case as b of { Nothing -> as a; _ -> as b },
 		input_html = input_html a ++ input_html b,
 		label_html = label_html a ++ label_html b,
 		error_html = error_html a ++ error_html b,
@@ -117,46 +107,65 @@ monoidOr a b
 	| a == mempty = b
 	| otherwise = a
 
+-- | Format identifiers nicely for humans to read
 humanize :: Text -> Text
 humanize = id -- TODO
 
--- | Infer sane defaults for an input based on its type
-class DefaultInputOptions a where
-	def :: InputOptions a
+-- | Infer a widget based on type
+class DefaultWidget a where
+	wdef :: Widget a
 
-instance DefaultInputOptions Bool where
-	def = mempty { as = Just checkbox }
+instance DefaultWidget Bool where
+	wdef = checkbox
 
-instance DefaultInputOptions Text where
-	def = mempty { as = Just text }
+instance DefaultWidget Text where
+	wdef = text
 
-text :: Maybe Text -> InputOptions Text -> Html
-text u (InputOptions {name = n, value = v, disabled = d, required = r}) =
-	mkDisabled d $ mkRequired r (
-		HTML.input !
-			HTML.type_ (toValue "text") !
-			HTML.name (toValue n) !
-			HTML.value (toValue $ fromMaybe (fromMaybe mempty u) v)
-	)
+type Widget a = (Maybe a -> Maybe Text -> Text -> InputOptions -> Html)
 
-checkbox :: Maybe Text -> InputOptions Bool -> Html
-checkbox u (InputOptions {name = n, value = v, disabled = d, required = r}) =
-	mkChecked isChecked $ mkDisabled d $ mkRequired r (
-		HTML.input !
-			HTML.type_ (toValue "checkbox") !
-			HTML.name (toValue n)
-	)
+text :: Widget Text
+text v u n = input_tag n (v <|> u) (T.pack "text") []
+
+checkbox :: Widget Bool
+checkbox v u n = input_tag n Nothing (T.pack "checkbox") [
+		[(T.pack "checked", T.pack "checked") | isChecked]
+	]
 	where
 	isChecked = fromMaybe (maybe False (/=mempty) u) v
 
-mkChecked :: Bool -> Html -> Html
-mkChecked True = (! HTML.checked (toValue "checked"))
-mkChecked False = id
+-- | <input />
+input_tag ::
+	Text               -- ^ name
+	-> Maybe Text      -- ^ textual value
+	-> Text            -- ^ type
+	-> [[(Text,Text)]] -- ^ Extra default attributes
+	-> InputOptions    -- ^ Attributes from options override defaults
+	-> Html
+input_tag n v t dattr (InputOptions {disabled = d, required = r, input_html = iattrs}) =
+	applyAttrs [
+		[(T.pack "disabled", T.pack "disabled") | d],
+		[(T.pack "required", T.pack "required") | r],
+		[(T.pack "type", t)],
+		concat dattr
+	] iattrs $ maybe id (\v' h -> h ! HTML.value (toValue v')) v (
+		HTML.input !
+			HTML.name (toValue n)
+	)
 
-mkDisabled :: Bool -> Html -> Html
-mkDisabled True = (! HTML.disabled (toValue "disabled"))
-mkDisabled False = id
+mkAttribute :: (Text,Text) -> HTML.Attribute
+mkAttribute (k,v) = HTML.customAttribute (HTML.textTag k) (toValue v)
 
-mkRequired :: Bool -> Html -> Html
-mkRequired True = (! HTML.required (toValue "required"))
-mkRequired False = id
+-- | Apply a list of default attributes and user overrides to some 'Html'
+applyAttrs ::
+	[[(Text,Text)]]  -- ^ Defaults
+	-> [(Text,Text)] -- ^ User overrides
+	-> Html          -- ^ Apply attributes to this 'Html'
+	-> Html
+applyAttrs dattr cattr html = foldl' (!) html (map mkAttribute attrs)
+	where
+	attrs = nubBy ((==) `on` fst) attrsWithClass
+	attrsWithClass
+		| null classes = attrs'
+		| otherwise = (T.pack "class", T.unwords classes):attrs'
+	classes = concatMap (T.words . snd) $ filter ((== T.pack "class") . fst) attrs'
+	attrs' = cattr ++ concat dattr

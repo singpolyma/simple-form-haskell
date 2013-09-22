@@ -62,7 +62,7 @@ instance (Monoid a) => Monoid (SimpleForm r a) where
 
 -- | Render a 'SimpleForm' to 'Html'
 simpleForm :: (ToMarkup v) =>
-	(RenderOptions -> Html) -- ^ Renderer
+	Renderer
 	-> (View v, Maybe a)    -- ^ Results of running a digestive-functors 'Form'
 	-> SimpleForm a ()      -- ^ The simple form to render
 	-> Html
@@ -74,38 +74,41 @@ toForm :: (ToMarkup h) => h -> SimpleForm a ()
 toForm = SimpleForm . lift . tell . toHtml
 
 -- | Create an input element for a 'SimpleForm'
+--
+-- > input "username" (Just . username) wdef mempty
 input ::
 	Text                        -- ^ Form element name
 	-> (r -> Maybe a)           -- ^ Get value from parsed data
-	-> InputOptions a           -- ^ Other options (base off 'SimpleForm.def')
+	-> Widget a                 -- ^ Widget to use (such as 'SimpleForm.wdef')
+	-> InputOptions             -- ^ Other options
 	-> SimpleForm r ()
-input n sel opt = SimpleForm $ ReaderT $ tell . input' n sel opt
+input n sel w opt = SimpleForm $ ReaderT $ tell . input' n sel w opt
 
 -- | Same as 'input', but just use the default options
-input_ :: (DefaultInputOptions a) =>
+input_ :: (DefaultWidget a) =>
 	Text                        -- ^ Form element name
 	-> (r -> Maybe a)           -- ^ Get value from parsed data
 	-> SimpleForm r ()
-input_ n sel = input n sel def
+input_ n sel = input n sel wdef mempty
 
 input' ::
 	Text                        -- ^ Form element name
 	-> (r -> Maybe a)           -- ^ Get value from parsed data
-	-> InputOptions a           -- ^ Other options (base off 'def')
+	-> Widget a                 -- ^ Widget to use (such as 'SimpleForm.wdef'
+	-> InputOptions             -- ^ Other options
 	-> SimpleFormEnv r
 	-> Html
-input' n sel opt (env, view@(View {viewForm = form}), render) =
-	render $ renderInputOptions unparsed errors $
-		opt {
-			name = pathToText apth,
-			value = maybe Nothing sel env,
-			disabled = disabled opt || Disabled `elem` metadata
-		}
+input' n sel w opt (env, view@(View {viewForm = form}), render) =
+	render $ renderOptions
+		(maybe Nothing sel env) unparsed (pathToText apth) w errors $
+			opt {
+				disabled = disabled opt || Disabled `elem` metadata
+			}
 	where
 	apth = case absolutePath n view of
 		(p:ps)
 			| T.null p -> ps
-			| otherwise -> (p:ps)
+			| otherwise -> p:ps
 		_ -> []
 	metadata = concatMap snd $ lookupFormMetadata [n] form
 	errors = map snd $ filter ((==[n]) . fst) $ viewErrors view
