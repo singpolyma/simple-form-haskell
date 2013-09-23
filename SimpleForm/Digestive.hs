@@ -5,6 +5,8 @@ module SimpleForm.Digestive (
 	-- * Create forms
 	input,
 	input_,
+	choiceInput,
+	choiceInput_,
 	toForm,
 	-- * Subforms
 	withFields,
@@ -22,8 +24,10 @@ import Control.Monad.Trans.Class
 
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.Lazy as TL
 
 import Text.Blaze.Html (Html, ToMarkup, toHtml)
+import Text.Blaze.Html.Renderer.Text (renderHtml)
 import qualified Text.Blaze.XHtml5 as HTML
 
 import Text.Digestive.View
@@ -72,6 +76,27 @@ simpleForm render (view, val) (SimpleForm form) =
 -- | Add some raw markup to a 'SimpleForm'
 toForm :: (ToMarkup h) => h -> SimpleForm a ()
 toForm = SimpleForm . lift . tell . toHtml
+
+-- | Like 'input', but grabs a collection out of the 'View'
+choiceInput ::
+	Text                                     -- ^ Form element name
+	-> (r -> Maybe a)                        -- ^ Get value from parsed data
+	-> ([(Text, [(Text,Text)])] -> Widget a) -- ^ Widget to use
+	-> InputOptions                          -- ^ Other options
+	-> SimpleForm r ()
+choiceInput n sel w opt = SimpleForm $ ReaderT $ \(env, view, render) ->
+	let
+		textView = fmap (TL.toStrict . renderHtml) view
+		collection = fieldInputChoiceGroup' [n] textView
+	in
+	tell $ input' n sel (w collection) opt (env, view, render)
+
+-- | Like 'choiceInput', but chooses defaults for 'Widget' and 'InputOptions'
+choiceInput_ ::
+	Text                 -- ^ Form element name
+	-> (r -> Maybe Text) -- ^ Get value from parsed data
+	-> SimpleForm r ()
+choiceInput_ n sel = choiceInput n sel select mempty
 
 -- | Create an input element for a 'SimpleForm'
 --

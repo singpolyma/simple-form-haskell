@@ -1,9 +1,10 @@
 {-# LANGUAGE GADTs #-}
 -- | Torn from the internals of digestive-functors
-module SimpleForm.Digestive.Internal (getField, subView') where
+module SimpleForm.Digestive.Internal (getField, subView', fieldInputChoiceGroup') where
 
 import Data.List (isPrefixOf)
 import Data.Functor.Identity (Identity)
+import Control.Arrow (second)
 import Data.Text (Text)
 import qualified Data.Text as T
 
@@ -40,6 +41,34 @@ getField' Post (TextInput x : _) (Bool _)	  = Just x
 getField' Post _				 (Bool _)	  = Nothing
 getField' Post (FileInput x : _) File		  = Just (T.pack x)
 getField' _	_				 File		  = Nothing
+
+fieldInputChoiceGroup' ::
+	Path
+	-> View v
+	-> [(Text, [(Text, v)])]
+fieldInputChoiceGroup' path (View _ _ form input _ method) =
+	map (second $ map (\(v,l,_) -> (v,l))) (queryField path form eval')
+	where
+	givenInput = lookupInput path input
+
+	eval' :: Field v b -> [(Text, [(Text, v, Bool)])]
+	eval' field = case field of
+		Choice xs didx ->
+			let idx = snd $ evalField method givenInput (Choice xs didx) in
+				merge idx xs [0..]
+		f -> error $ show path ++ ": expected (Choice _ _), " ++
+			"but got: (" ++ show f ++ ")"
+
+merge ::
+	Int
+	-> [(Text, [(Text, (a, v))])]
+	-> [Int]
+	-> [(Text, [(Text, v, Bool)])]
+merge _ [] _ = []
+merge idx (g:gs) is = cur : merge idx gs b
+	where
+	(a,b) = splitAt (length $ snd g) is
+	cur = (fst g, map (\(i, (k, (_, v))) -> (k, v, i == idx)) $ zip a (snd g))
 
 subView' :: Path -> View v -> View v
 subView' path (View name ctx form input errs method) =
