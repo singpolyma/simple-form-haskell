@@ -14,7 +14,7 @@ import SimpleForm
 render :: Renderer
 render (RenderOptions {
 		name = n,
-		widgetHtml = [whtml],
+		widgetHtml = Input whtml,
 		errors = errors,
 		options = InputOptions {
 			label = lbl,
@@ -35,9 +35,35 @@ render (RenderOptions {
 			whtml
 			forM_ errors $ applyAttrs [[(T.pack "class", T.pack "error")]] eattr . HTML.span
 			forM_ hint $ applyAttrs [[(T.pack "class", T.pack "hint")]] hattr . HTML.span . toHtml
+
 render (RenderOptions {
 		name = n,
-		widgetHtml = whtml,
+		widgetHtml = SelfLabelInput whtml,
+		errors = errors,
+		options = InputOptions {
+			label = lbl,
+			hint = hint,
+			disabled = d,
+			required = r,
+			wrapper_html = wattr,
+			label_html = lattr,
+			hint_html = hattr,
+			error_html = eattr
+		}
+	}) =
+		applyAttrs [
+			[(T.pack "class", T.pack "disabled") | d],
+			[(T.pack "class", T.pack "required") | r]
+		] wattr $ (if errorsOrHint then HTML.div else id) $ do
+			whtml
+			forM_ errors $ applyAttrs [[(T.pack "class", T.pack "error")]] eattr . HTML.span
+			forM_ hint $ applyAttrs [[(T.pack "class", T.pack "hint")]] hattr . HTML.span . toHtml
+	where
+	errorsOrHint = not (null errors && hint == mempty)
+
+render (RenderOptions {
+		name = n,
+		widgetHtml = MultiInput whtml,
 		errors = errors,
 		options = InputOptions {
 			label = lbl,
