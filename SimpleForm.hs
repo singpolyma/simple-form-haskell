@@ -26,6 +26,8 @@ module SimpleForm (
 	datetime,
 	datetime_local,
 	-- ** Collections
+	GroupedCollection,
+	Collection,
 	select,
 	multi_select,
 	radio_buttons,
@@ -45,6 +47,7 @@ module SimpleForm (
 	input_tag,
 	selectEnum,
 	enum,
+	group_,
 	multiEnum,
 	humanize,
 	applyAttrs
@@ -63,6 +66,7 @@ import System.Locale (defaultTimeLocale, iso8601DateFormat)
 import Text.Blaze.XHtml5 (Html, (!), toValue)
 import qualified Text.Blaze.XHtml5 as HTML
 import qualified Text.Blaze.XHtml5.Attributes as HTML hiding (label, span)
+import qualified Text.Blaze.XHtml5.Attributes as HTMLA
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.String
@@ -246,19 +250,32 @@ instance (Enum a) => Enum (SelectEnum a) where
 	toEnum = SelectEnum . toEnum
 	fromEnum (SelectEnum x) = fromEnum x
 
+-- | Collection of items for the user to choose from, with optional grouping
+--
+-- A trivial 'GroupedCollection' (with just one, blankly-named group)
+-- should be treated by 'Widget's as if it were just a 'Collection'
+type GroupedCollection = [(Text, [(Text, Text)])]
+
+-- | Collection of items for the user to choose from
+type Collection = [(Text, Text)]
+
 -- | Derive a collection from an enumerable type
-selectEnum :: (Show a, Read a, Bounded a, Enum a) => a -> [(Text, Text)]
+selectEnum :: (Show a, Read a, Bounded a, Enum a) => a -> Collection
 selectEnum v = map (\x -> let x' = T.pack $ show x in (x', humanize x')) opts
 	where
 	opts = [minBound `asTypeOf` v .. maxBound `asTypeOf` v]
 
 -- | Feed a collection 'Widget' from an enumerable type
-enum :: (Show a, Read a, Bounded a, Enum a) => ([(Text, Text)] -> Widget Text) -> Widget a
-enum w v = w (selectEnum $ fromJust v) (fmap (T.pack . show) v)
+enum :: (Show a, Read a, Bounded a, Enum a) => (GroupedCollection -> Widget Text) -> Widget a
+enum w v = w (group_ $ selectEnum $ fromJust v) (fmap (T.pack . show) v)
 
 -- | Feed a multi-select collection 'Widget' from an enumerable type
-multiEnum :: (Show a, Read a, Bounded a, Enum a) => ([(Text, Text)] -> Widget [Text]) -> Widget [a]
-multiEnum w v = w (selectEnum $ head $ fromJust v) (fmap (fmap (T.pack . show)) v)
+multiEnum :: (Show a, Read a, Bounded a, Enum a) => (GroupedCollection -> Widget [Text]) -> Widget [a]
+multiEnum w v = w (group_ $ selectEnum $ head $ fromJust v) (fmap (fmap (T.pack . show)) v)
+
+-- | Push any 'Collection' to a trivial 'GroupedCollection'
+group_ :: Collection -> GroupedCollection
+group_ c = [(mempty, c)]
 
 instance (Show a, Read a, Bounded a, Enum a) => DefaultWidget (SelectEnum a) where
 	wdef = enum select
@@ -377,52 +394,85 @@ datetime_local v u n =
 	fmt = T.pack . formatTime defaultTimeLocale format
 	format = iso8601DateFormat $ Just "%H:%M:%S%Q"
 
-select :: [(Text, Text)] -> Widget Text
+select :: GroupedCollection -> Widget Text
 select collection v u n (InputOptions {disabled = d, required = r, input_html = iattrs}) = Input $
 	applyAttrs [
 		[(T.pack "disabled", T.pack "disabled") | d],
 		[(T.pack "required", T.pack "required") | r]
 	] iattrs (
 		HTML.select ! HTML.name (toValue n) $
-			forM_ collection $ \(value, label) ->
-				mkSelected (Just value == v) $
-				HTML.option ! HTML.value (toValue value) $
-					HTML.toHtml label
+			formatCollection $ \subCollection ->
+				forM_ subCollection $ \(value, label) ->
+					mkSelected (Just value == v) $
+					HTML.option ! HTML.value (toValue value) $
+						HTML.toHtml label
 	)
+	where
+	formatCollection f
+		| length collection == 1 && fst (head collection) == mempty =
+			f (snd $ head collection)
+		| otherwise =
+			forM_ collection $ \(group, subCollection) ->
+				HTML.optgroup ! HTMLA.label (toValue group) $
+					f subCollection
 
-multi_select :: [(Text, Text)] -> Widget [Text]
+multi_select :: GroupedCollection -> Widget [Text]
 multi_select collection v u n (InputOptions {disabled = d, required = r, input_html = iattrs}) = Input $
 	applyAttrs [
 		[(T.pack "disabled", T.pack "disabled") | d],
 		[(T.pack "required", T.pack "required") | r]
 	] iattrs (
 		HTML.select ! HTML.name (toValue n) ! HTML.multiple (toValue "multiple") $
-			forM_ collection $ \(value, label) ->
-				mkSelected (value `elem` items) $
-				HTML.option ! HTML.value (toValue value) $
-					HTML.toHtml label
+			formatCollection $ \subCollection ->
+				forM_ subCollection $ \(value, label) ->
+					mkSelected (value `elem` items) $
+					HTML.option ! HTML.value (toValue value) $
+						HTML.toHtml label
 	)
 	where
 	items = fromMaybe [] v
+	formatCollection f
+		| length collection == 1 && fst (head collection) == mempty =
+			f (snd $ head collection)
+		| otherwise =
+			forM_ collection $ \(group, subCollection) ->
+				HTML.optgroup ! HTMLA.label (toValue group) $
+					f subCollection
 
-radio_buttons :: [(Text, Text)] -> Widget Text
+radio_buttons :: GroupedCollection -> Widget Text
 radio_buttons collection v u n opt =
-	MultiInput $ map radio collection
+	MultiInput $ formatCollection $ map radio
 	where
 	radio (value, label) = HTML.label $ do
 		mkChecked (Just value == v) $
 			input_tag n (Just value) (T.pack "radio") [] opt
 		HTML.toHtml label
+	formatCollection f
+		| length collection == 1 && fst (head collection) == mempty =
+			f (snd $ head collection)
+		| otherwise =
+			(`map` collection) $ \(group, subCollection) ->
+				HTML.fieldset $ do
+					HTML.legend $ HTML.toHtml group
+					mconcat (f subCollection)
 
-checkboxes :: [(Text, Text)] -> Widget [Text]
+checkboxes :: GroupedCollection -> Widget [Text]
 checkboxes collection v u n opt =
-	MultiInput $ map check collection
+	MultiInput $ formatCollection $ map check
 	where
 	items = fromMaybe [] v
 	check (value, label) = HTML.label $ do
 		mkChecked (value `elem` items) $
 			input_tag n (Just value) (T.pack "checkbox") [] opt
 		HTML.toHtml label
+	formatCollection f
+		| length collection == 1 && fst (head collection) == mempty =
+			f (snd $ head collection)
+		| otherwise =
+			(`map` collection) $ \(group, subCollection) ->
+				HTML.fieldset $ do
+					HTML.legend $ HTML.toHtml group
+					mconcat (f subCollection)
 
 -- | <input />
 input_tag ::
