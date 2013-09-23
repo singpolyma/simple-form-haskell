@@ -82,10 +82,10 @@ toForm = SimpleForm . lift . tell . toHtml
 
 -- | Like 'input', but grabs a collection out of the 'View'
 choiceInput ::
-	Text                                     -- ^ Form element name
-	-> (r -> Maybe a)                        -- ^ Get value from parsed data
-	-> ([(Text, [(Text,Text)])] -> Widget a) -- ^ Widget to use
-	-> InputOptions                          -- ^ Other options
+	Text                               -- ^ Form element name
+	-> (r -> Maybe a)                  -- ^ Get value from parsed data
+	-> (GroupedCollection -> Widget a) -- ^ Widget to use
+	-> InputOptions                    -- ^ Other options
 	-> SimpleForm r ()
 choiceInput n sel w opt = SimpleForm $ ReaderT $ \(env, view, render) ->
 	let
