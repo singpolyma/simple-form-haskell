@@ -340,7 +340,7 @@ button v u n (InputOptions {label = l, disabled = d, input_html = iattrs}) = Sel
 	getLabel DefaultLabel = humanize n
 
 hidden :: Widget Text
-hidden v u n = Input . input_tag n (v <|> u) (T.pack "hidden") []
+hidden v u n = SelfLabelInput . input_tag n (v <|> u) (T.pack "hidden") []
 
 file :: Widget Text
 file v u n = Input . input_tag n (v <|> u) (T.pack "file") []
