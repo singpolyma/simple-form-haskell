@@ -1,7 +1,13 @@
--- | Forms that configure themseles based on type
+-- | Forms that configure themselves based on type
 module SimpleForm (
 	Widget,
 	DefaultWidget(..),
+	-- * Options
+	InputOptions(..),
+	Label(..),
+	-- * Wrappers
+	ShowRead(..),
+	SelectEnum(..),
 	-- * Widgets
 	button,
 	hidden,
@@ -32,17 +38,6 @@ module SimpleForm (
 	multi_select,
 	radio_buttons,
 	checkboxes,
-	-- ** Wrappers
-	ShowRead(..),
-	SelectEnum(..),
-	-- * Options
-	InputOptions(..),
-	Label(..),
-	-- * Rendering
-	Input(..),
-	Renderer,
-	RenderOptions(..),
-	renderOptions,
 	-- * Helpers
 	input_tag,
 	selectEnum,
@@ -50,7 +45,12 @@ module SimpleForm (
 	group_,
 	multiEnum,
 	humanize,
-	applyAttrs
+	applyAttrs,
+	-- * Rendering
+	Renderer,
+	Input(..),
+	RenderOptions(..),
+	renderOptions
 ) where
 
 import Data.Maybe
@@ -89,6 +89,7 @@ data Label = Label Text | InlineLabel Text | DefaultLabel
 instance IsString Label where
 	fromString = Label . fromString
 
+-- | The type of a final form-renderer
 type Renderer = (RenderOptions -> Html)
 
 -- | 'InputOptions' that have been prepped for rendering
@@ -115,7 +116,7 @@ renderOptions v u n w errors opt = RenderOptions {
 		options = opt
 	}
 
--- | The setup for rendering an input. Blank is 'mempty', default is 'def'.
+-- | The setup for rendering an input. Blank is 'Data.Monoid.mempty'
 data InputOptions = InputOptions {
 		label :: Maybe Label,
 		hint :: Maybe Text,
@@ -474,7 +475,7 @@ checkboxes collection v u n opt =
 					HTML.legend $ HTML.toHtml group
 					mconcat (f subCollection)
 
--- | <input />
+-- | \<input /\>
 input_tag ::
 	Text               -- ^ name
 	-> Maybe Text      -- ^ textual value

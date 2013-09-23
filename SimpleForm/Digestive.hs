@@ -65,6 +65,9 @@ instance (Monoid a) => Monoid (SimpleForm r a) where
 		return (a' `mappend` b')
 
 -- | Render a 'SimpleForm' to 'Html'
+--
+-- This produces the contents of the form, but you must still wrap it in
+-- the actual \<form\> element.
 simpleForm :: (ToMarkup v) =>
 	Renderer
 	-> (View v, Maybe a)    -- ^ Results of running a digestive-functors 'Form'
