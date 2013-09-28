@@ -52,6 +52,7 @@ module SimpleForm (
 ) where
 
 import Data.Maybe
+import Data.Char (isUpper)
 import Data.Monoid
 import Data.Ratio
 import Data.Function (on)
@@ -133,7 +134,20 @@ monoidOr a b
 
 -- | Format identifiers nicely for humans to read
 humanize :: Text -> Text
-humanize = id -- TODO
+humanize =
+	T.unwords . map titleWord . titleFirstWord . T.words . T.concatMap go
+	where
+	titlecase word = T.toUpper (T.singleton $ T.head word)
+		`T.append` T.tail word
+	titleFirstWord [] = []
+	titleFirstWord (w:ws) = titlecase w : ws
+	titleWord word
+		| T.length word < 4 = word
+		| otherwise = titlecase word
+	go c
+		| isUpper c = T.singleton ' ' `T.append` T.toLower (T.singleton c)
+		| c == '_' = T.singleton ' '
+		| otherwise = T.singleton c
 
 -- | Infer a 'Widget' based on type
 class DefaultWidget a where
