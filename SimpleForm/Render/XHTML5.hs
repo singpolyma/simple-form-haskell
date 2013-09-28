@@ -84,8 +84,8 @@ hintAndError (RenderOptions {
 		forM_ hint $ applyAttrs [[(T.pack "class", T.pack "hint")]] hattr . HTML.span . toHtml
 
 label_value :: Text -> Label -> Html
-label_value _ (Label s) = HTML.span $ toHtml s
-label_value _ (InlineLabel s) = toHtml s
+label_value _ (Label s) = HTML.span (toHtml s) `mappend` toHtml " "
+label_value _ (InlineLabel s) = toHtml s `mappend` toHtml " "
 label_value d (DefaultLabel) = label_value d (Label d)
 
 legend_value :: Text -> Label -> Html
