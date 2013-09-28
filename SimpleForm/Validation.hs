@@ -3,7 +3,9 @@ module SimpleForm.Validation (
 	DefaultValidation(..),
 	-- * Wrappers
 	ShowRead(..),
+	unShowRead,
 	SelectEnum(..),
+	unSelectEnum,
 	-- * Validations
 	bool,
 	-- ** Text-like
@@ -53,7 +55,7 @@ import qualified Text.Email.Validate as EmailAddress
 import Network.URI (URI)
 import qualified Network.URI as URI
 
-import SimpleForm (GroupedCollection, humanize, SelectEnum(..), ShowRead(..))
+import SimpleForm (GroupedCollection, humanize, SelectEnum(..), unSelectEnum, ShowRead(..), unShowRead)
 
 -- | 'GroupedCollection' including the parsed value
 type GroupedCollection' a = [(Text, [(a, (Text, Text))])]

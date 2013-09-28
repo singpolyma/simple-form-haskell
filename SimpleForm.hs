@@ -8,7 +8,9 @@ module SimpleForm (
 	Label(..),
 	-- * Wrappers
 	ShowRead(..),
+	unShowRead,
 	SelectEnum(..),
+	unSelectEnum,
 	-- * Widgets
 	button,
 	hidden,
@@ -193,7 +195,10 @@ instance (DefaultWidget a) => DefaultWidget (Maybe a) where
 	wdef = wdef . join
 
 -- | Wrapper for types that should be rendered using 'show'
-newtype ShowRead a = ShowRead a
+newtype ShowRead a = ShowRead a deriving (Eq, Ord)
+
+unShowRead :: ShowRead a -> a
+unShowRead (ShowRead x) = x
 
 instance (Show a, Read a) => Show (ShowRead a) where
 	show (ShowRead x) = show x
@@ -205,7 +210,10 @@ instance (Show a, Read a) => DefaultWidget (ShowRead a) where
 	wdef = text . fmap (T.pack . show)
 
 -- | Wrapper for select boxes on enumerable types
-newtype SelectEnum a = SelectEnum a
+newtype SelectEnum a = SelectEnum a deriving (Eq, Ord)
+
+unSelectEnum :: SelectEnum a -> a
+unSelectEnum (SelectEnum x) = x
 
 instance (Show a, Read a) => Show (SelectEnum a) where
 	show (SelectEnum x) = show x

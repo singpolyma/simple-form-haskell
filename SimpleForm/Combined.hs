@@ -9,7 +9,9 @@ module SimpleForm.Combined (
 	Label(..),
 	-- * Wrappers
 	ShowRead(..),
+	unShowRead,
 	SelectEnum(..),
+	unSelectEnum,
 	-- * Widgets
 	button,
 	hidden,
@@ -55,7 +57,7 @@ import Network.URI (URI)
 import Data.Text (Text)
 import qualified Data.Text as T
 
-import SimpleForm (DefaultWidget, Widget, InputOptions(..), Label(..), ShowRead(..), SelectEnum(..), humanize)
+import SimpleForm (DefaultWidget, Widget, InputOptions(..), Label(..), ShowRead(..), unShowRead, SelectEnum(..), unSelectEnum, humanize)
 import SimpleForm.Validation (DefaultValidation, Validation(..), selectEnum, GroupedCollection', Collection', group_)
 import qualified SimpleForm
 import qualified SimpleForm.Validation as Validation
