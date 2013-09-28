@@ -66,7 +66,7 @@ data Validation a = Check ([Text] -> Maybe a) | Includes (GroupedCollection' a)
 
 instance Functor Validation where
 	fmap f (Includes xs) = Includes $ map (second $ map (first f)) xs
-	fmap f (Check chk) = Check $ (\s -> chk s >>= Just . f)
+	fmap f (Check chk) = Check (chk >=> Just . f)
 
 -- | Map over a 'Validation' with a partial function
 pmap :: (a -> Maybe b) -> Validation a -> Validation b
@@ -186,7 +186,7 @@ optional :: Validation a -> Validation (Maybe a)
 optional (Check chk) = Check go
 	where
 	go t | null t || T.null (head t)  = Just Nothing
-	     | otherwise = maybe Nothing (Just . Just) (chk t)
+	     | otherwise = fmap Just (chk t)
 optional (Includes _) =
 	error "You cannot both validate against a list and be optional."
 

@@ -13,19 +13,15 @@ import SimpleForm
 import SimpleForm.Render
 
 render :: Renderer
-render (RenderOptions {
+render opt@(RenderOptions {
 		name = n,
 		widgetHtml = Input whtml,
-		errors = errors,
 		options = InputOptions {
 			label = lbl,
-			hint = hint,
 			disabled = d,
 			required = r,
 			wrapper_html = wattr,
-			label_html = lattr,
-			hint_html = hattr,
-			error_html = eattr
+			label_html = lattr
 		}
 	}) =
 		applyAttrs [
@@ -34,22 +30,16 @@ render (RenderOptions {
 		] wattr $ HTML.label $ do
 			forM_ lbl $ applyAttrs [] lattr . label_value (humanize n)
 			whtml
-			forM_ errors $ applyAttrs [[(T.pack "class", T.pack "error")]] eattr . HTML.span
-			forM_ hint $ applyAttrs [[(T.pack "class", T.pack "hint")]] hattr . HTML.span . toHtml
+			hintAndError opt
 
-render (RenderOptions {
-		name = n,
+render opt@(RenderOptions {
 		widgetHtml = SelfLabelInput whtml,
 		errors = errors,
 		options = InputOptions {
-			label = lbl,
 			hint = hint,
 			disabled = d,
 			required = r,
-			wrapper_html = wattr,
-			label_html = lattr,
-			hint_html = hattr,
-			error_html = eattr
+			wrapper_html = wattr
 		}
 	}) =
 		applyAttrs [
@@ -57,24 +47,19 @@ render (RenderOptions {
 			[(T.pack "class", T.pack "required") | r]
 		] wattr $ (if errorsOrHint then HTML.div else id) $ do
 			whtml
-			forM_ errors $ applyAttrs [[(T.pack "class", T.pack "error")]] eattr . HTML.span
-			forM_ hint $ applyAttrs [[(T.pack "class", T.pack "hint")]] hattr . HTML.span . toHtml
+			hintAndError opt
 	where
 	errorsOrHint = not (null errors && hint == mempty)
 
-render (RenderOptions {
+render opt@(RenderOptions {
 		name = n,
 		widgetHtml = MultiInput whtml,
-		errors = errors,
 		options = InputOptions {
 			label = lbl,
-			hint = hint,
 			disabled = d,
 			required = r,
 			wrapper_html = wattr,
-			label_html = lattr,
-			hint_html = hattr,
-			error_html = eattr
+			label_html = lattr
 		}
 	}) =
 		applyAttrs [
@@ -84,8 +69,19 @@ render (RenderOptions {
 		] wattr $ HTML.fieldset $ do
 			forM_ lbl $ applyAttrs [] lattr . legend_value (humanize n)
 			HTML.ul $ mconcat $ map HTML.li whtml
-			forM_ errors $ applyAttrs [[(T.pack "class", T.pack "error")]] eattr . HTML.span
-			forM_ hint $ applyAttrs [[(T.pack "class", T.pack "hint")]] hattr . HTML.span . toHtml
+			hintAndError opt
+
+hintAndError :: RenderOptions -> Html
+hintAndError (RenderOptions {
+		errors = errors,
+		options = InputOptions {
+			hint = hint,
+			hint_html = hattr,
+			error_html = eattr
+		}
+	}) = do
+		forM_ errors $ applyAttrs [[(T.pack "class", T.pack "error")]] eattr . HTML.span
+		forM_ hint $ applyAttrs [[(T.pack "class", T.pack "hint")]] hattr . HTML.span . toHtml
 
 label_value :: Text -> Label -> Html
 label_value _ (Label s) = HTML.span $ toHtml s

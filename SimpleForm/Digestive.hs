@@ -16,14 +16,11 @@ module SimpleForm.Digestive (
 ) where
 
 import Data.Monoid
-import Control.Applicative
-import Control.Monad
 import Control.Monad.Trans.Reader
 import Control.Monad.Trans.Writer
 import Control.Monad.Trans.Class
 
 import Data.Text (Text)
-import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 
 import Text.Blaze.Html (Html, ToMarkup, toHtml)
@@ -31,7 +28,6 @@ import Text.Blaze.Html.Renderer.Text (renderHtml)
 import qualified Text.Blaze.XHtml5 as HTML
 
 import Text.Digestive.View
-import Text.Digestive.Form.Internal (Metadata(Disabled), lookupFormMetadata)
 import SimpleForm
 import SimpleForm.Render
 import SimpleForm.Digestive.Internal

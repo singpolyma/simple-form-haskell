@@ -1,6 +1,8 @@
 -- | SimpleForm implementation that works along with digestive-functors
 module SimpleForm.Digestive.Combined (
 	SimpleForm,
+	getSimpleForm,
+	postSimpleForm,
 	simpleForm,
 	simpleForm',
 	-- * Create forms
@@ -14,24 +16,18 @@ module SimpleForm.Digestive.Combined (
 ) where
 
 import Data.Monoid
-import Control.Applicative
-import Control.Monad
-import Control.Monad.Fix
 import Control.Monad.Trans.Reader
 import Control.Monad.Trans.Writer
-import Control.Monad.Trans.Class
 
 import Data.Text (Text)
 import qualified Data.Text as T
-import qualified Data.Text.Lazy as TL
 
-import Text.Blaze.Html (Html, ToMarkup, toHtml)
+import Text.Blaze.Html (Html)
 
 import Text.Digestive.View
 import Text.Digestive.Form
 import Text.Digestive.Types (Env)
-import Text.Digestive.Form.Internal (Metadata(Disabled), lookupFormMetadata)
-import SimpleForm.Digestive (SimpleForm(..), toForm, withFields, wrap, fieldset, simpleForm, simpleForm')
+import SimpleForm.Digestive (toForm, withFields, wrap, fieldset, simpleForm, simpleForm')
 import SimpleForm.Combined
 import SimpleForm.Digestive.Internal
 import SimpleForm.Digestive.Validation

@@ -55,7 +55,7 @@ import Network.URI (URI)
 import Data.Text (Text)
 import qualified Data.Text as T
 
-import SimpleForm (DefaultWidget, Widget, Input(..), InputOptions(..), Label(..), ShowRead(..), SelectEnum(..), humanize)
+import SimpleForm (DefaultWidget, Widget, InputOptions(..), Label(..), ShowRead(..), SelectEnum(..), humanize)
 import SimpleForm.Validation (DefaultValidation, Validation(..), selectEnum, GroupedCollection', Collection', group_)
 import qualified SimpleForm
 import qualified SimpleForm.Validation as Validation

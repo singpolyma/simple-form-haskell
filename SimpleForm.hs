@@ -55,6 +55,7 @@ import Data.Ratio
 import Data.Function (on)
 import Data.Foldable (foldl', forM_)
 import Data.List (nubBy)
+import Control.Arrow (first)
 import Control.Applicative ((<|>))
 import Control.Monad (join)
 import Data.Time (UTCTime, LocalTime, ZonedTime, Day, TimeOfDay, formatTime, FormatTime)
@@ -75,8 +76,8 @@ instance Monoid Input where
 	(Input x) `mappend` (MultiInput y) = MultiInput (x:y)
 	(MultiInput x) `mappend` (Input y) = MultiInput (x ++ [y])
 	(MultiInput x) `mappend` (MultiInput y) = MultiInput (x ++ y)
-	(SelfLabelInput x) `mappend` y = (Input x) `mappend` y
-	x `mappend` (SelfLabelInput y) = x `mappend` (Input y)
+	(SelfLabelInput x) `mappend` y = Input x `mappend` y
+	x `mappend` (SelfLabelInput y) = x `mappend` Input y
 
 -- | A block label, inline label, or implied value label
 data Label = Label Text | InlineLabel Text | DefaultLabel
@@ -112,10 +113,10 @@ instance Monoid InputOptions where
 	}
 
 	mappend a b = InputOptions {
-		label = if label b == Just DefaultLabel then label a else label b,
+		label = label (if label b == Just DefaultLabel then a else b),
 		hint = monoidOr (hint b) (hint a),
-		required = if required b then required a else required b,
-		disabled = if not (disabled b) then disabled a else disabled b,
+		required = required (if required b then a else b),
+		disabled = disabled (if not (disabled b) then a else b),
 		input_html = input_html a ++ input_html b,
 		label_html = label_html a ++ label_html b,
 		error_html = error_html a ++ error_html b,
@@ -198,7 +199,7 @@ instance (Show a, Read a) => Show (ShowRead a) where
 	show (ShowRead x) = show x
 
 instance (Read a) => Read (ShowRead a) where
-	readsPrec n s = map (\(v,s') -> (ShowRead v, s')) (readsPrec n s)
+	readsPrec n s = map (first ShowRead) (readsPrec n s)
 
 instance (Show a, Read a) => DefaultWidget (ShowRead a) where
 	wdef = text . fmap (T.pack . show)
@@ -210,7 +211,7 @@ instance (Show a, Read a) => Show (SelectEnum a) where
 	show (SelectEnum x) = show x
 
 instance (Read a) => Read (SelectEnum a) where
-	readsPrec n s = map (\(v,s') -> (SelectEnum v, s')) (readsPrec n s)
+	readsPrec n s = map (first SelectEnum) (readsPrec n s)
 
 instance (Bounded a) => Bounded (SelectEnum a) where
 	minBound = SelectEnum minBound
@@ -313,7 +314,7 @@ textarea v u n (InputOptions {disabled = d, required = r, input_html =    iattrs
 	)
 
 button :: Widget Text
-button v u n (InputOptions {label = l, disabled = d, input_html = iattrs}) = SelfLabelInput $
+button v _ n (InputOptions {label = l, disabled = d, input_html = iattrs}) = SelfLabelInput $
 	applyAttrs [
 		[(T.pack "disabled", T.pack "disabled") | d],
 		[(T.pack "type", T.pack "submit")]
@@ -365,7 +366,7 @@ datetime_local v u n =
 	format = iso8601DateFormat $ Just "%H:%M:%S%Q"
 
 select :: GroupedCollection -> Widget Text
-select collection v u n (InputOptions {disabled = d, required = r, input_html = iattrs}) = Input $
+select collection v _ n (InputOptions {disabled = d, required = r, input_html = iattrs}) = Input $
 	applyAttrs [
 		[(T.pack "disabled", T.pack "disabled") | d],
 		[(T.pack "required", T.pack "required") | r]
@@ -387,7 +388,7 @@ select collection v u n (InputOptions {disabled = d, required = r, input_html = 
 					f subCollection
 
 multi_select :: GroupedCollection -> Widget [Text]
-multi_select collection v u n (InputOptions {disabled = d, required = r, input_html = iattrs}) = Input $
+multi_select collection v _ n (InputOptions {disabled = d, required = r, input_html = iattrs}) = Input $
 	applyAttrs [
 		[(T.pack "disabled", T.pack "disabled") | d],
 		[(T.pack "required", T.pack "required") | r]
@@ -410,7 +411,7 @@ multi_select collection v u n (InputOptions {disabled = d, required = r, input_h
 					f subCollection
 
 radio_buttons :: GroupedCollection -> Widget Text
-radio_buttons collection v u n opt =
+radio_buttons collection v _ n opt =
 	MultiInput $ formatCollection $ map radio
 	where
 	radio (value, label) = HTML.label $ do
@@ -427,7 +428,7 @@ radio_buttons collection v u n opt =
 					mconcat (f subCollection)
 
 checkboxes :: GroupedCollection -> Widget [Text]
-checkboxes collection v u n opt =
+checkboxes collection v _ n opt =
 	MultiInput $ formatCollection $ map check
 	where
 	items = fromMaybe [] v
