@@ -71,6 +71,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Data.String
 
+-- | Representation of an input widget in HTML
 data Input = Input Html | MultiInput [Html] | SelfLabelInput Html
 
 instance Monoid Input where

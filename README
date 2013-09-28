@@ -1,1 +1,2 @@
-See examples
+Inspired by the RubyGem of the same name, this package allows you to
+easily build validating forms that infer defaults based on type.
