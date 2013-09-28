@@ -57,11 +57,12 @@ getSimpleForm render val form = do
 -- the actual \<form\> element.
 postSimpleForm :: (Monad m) =>
 	Renderer
-	-> Env m
+	-> m (Env m)
 	-> SimpleForm a (Form Html m a) -- ^ The simple form to render
 	-> m (Html, Maybe a)
 postSimpleForm render env form = do
-		(view, val) <- postForm T.empty initialForm env
+		env' <- env
+		(view, val) <- postForm T.empty initialForm env'
 		let html = snd $ simpleForm' render (view, val) form
 		return (html, val)
 	where
