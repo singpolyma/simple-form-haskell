@@ -30,7 +30,7 @@ packageForm = Package
 	<$> s"name"     .: text Nothing
 	<*> s"category" .: choice categories Nothing
 	where
-	categories = [(x, s (show x)) | x <- [minBound .. maxBound]]
+	categories = fmap (\x -> (x, s (show x))) [minBound .. maxBound]
 
 main = do
 	view <- getForm mempty packageForm
