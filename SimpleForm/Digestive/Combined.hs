@@ -31,7 +31,6 @@ import Text.Digestive.View
 import Text.Digestive.Form
 import Text.Digestive.Types (Env)
 import Text.Digestive.Form.Internal (Metadata(Disabled), lookupFormMetadata)
-import SimpleForm (Renderer, renderOptions)
 import SimpleForm.Digestive (SimpleForm(..), toForm, withFields, wrap, fieldset, simpleForm, simpleForm')
 import SimpleForm.Combined
 import SimpleForm.Digestive.Internal

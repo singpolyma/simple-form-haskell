@@ -1,97 +1,37 @@
--- | Simple XHTML5 form renderer
-module SimpleForm.Render (render) where
+module SimpleForm.Render (
+	Renderer,
+	Input(..),
+	RenderOptions(..),
+	renderOptions
+) where
 
-import Data.Monoid
-import Data.Foldable (forM_)
+import Text.Blaze.Html (Html)
 import Data.Text (Text)
-import qualified Data.Text as T
-
-import Text.Blaze.XHtml5 (Html, toHtml)
-import qualified Text.Blaze.XHtml5 as HTML
-
 import SimpleForm
 
-render :: Renderer
-render (RenderOptions {
+-- | The type of a final form-renderer
+type Renderer = (RenderOptions -> Html)
+
+-- | 'InputOptions' that have been prepped for rendering
+data RenderOptions = RenderOptions {
+		name :: Text,
+		widgetHtml :: Input,
+		errors :: [Html],
+		options :: InputOptions
+	}
+
+-- | Prep 'InputOptions' for rendering
+renderOptions ::
+	Maybe a          -- ^ The parsed value for this input (if available)
+	-> Maybe Text    -- ^ The unparsed value for this input (if available)
+	-> Text          -- ^ The name of this input
+	-> Widget a      -- ^ Widget to render with
+	-> [Html]        -- ^ Any error messages for this input
+	-> InputOptions
+	-> RenderOptions
+renderOptions v u n w errors opt = RenderOptions {
 		name = n,
-		widgetHtml = Input whtml,
+		widgetHtml = w v u n opt,
 		errors = errors,
-		options = InputOptions {
-			label = lbl,
-			hint = hint,
-			disabled = d,
-			required = r,
-			wrapper_html = wattr,
-			label_html = lattr,
-			hint_html = hattr,
-			error_html = eattr
-		}
-	}) =
-		applyAttrs [
-			[(T.pack "class", T.pack "disabled") | d],
-			[(T.pack "class", T.pack "required") | r]
-		] wattr $ HTML.label $ do
-			forM_ lbl $ applyAttrs [] lattr . label_value (humanize n)
-			whtml
-			forM_ errors $ applyAttrs [[(T.pack "class", T.pack "error")]] eattr . HTML.span
-			forM_ hint $ applyAttrs [[(T.pack "class", T.pack "hint")]] hattr . HTML.span . toHtml
-
-render (RenderOptions {
-		name = n,
-		widgetHtml = SelfLabelInput whtml,
-		errors = errors,
-		options = InputOptions {
-			label = lbl,
-			hint = hint,
-			disabled = d,
-			required = r,
-			wrapper_html = wattr,
-			label_html = lattr,
-			hint_html = hattr,
-			error_html = eattr
-		}
-	}) =
-		applyAttrs [
-			[(T.pack "class", T.pack "disabled") | d],
-			[(T.pack "class", T.pack "required") | r]
-		] wattr $ (if errorsOrHint then HTML.div else id) $ do
-			whtml
-			forM_ errors $ applyAttrs [[(T.pack "class", T.pack "error")]] eattr . HTML.span
-			forM_ hint $ applyAttrs [[(T.pack "class", T.pack "hint")]] hattr . HTML.span . toHtml
-	where
-	errorsOrHint = not (null errors && hint == mempty)
-
-render (RenderOptions {
-		name = n,
-		widgetHtml = MultiInput whtml,
-		errors = errors,
-		options = InputOptions {
-			label = lbl,
-			hint = hint,
-			disabled = d,
-			required = r,
-			wrapper_html = wattr,
-			label_html = lattr,
-			hint_html = hattr,
-			error_html = eattr
-		}
-	}) =
-		applyAttrs [
-			[(T.pack "disabled", T.pack "disabled") | d],
-			[(T.pack "class", T.pack "disabled") | d],
-			[(T.pack "class", T.pack "required") | r]
-		] wattr $ HTML.fieldset $ do
-			forM_ lbl $ applyAttrs [] lattr . legend_value (humanize n)
-			HTML.ul $ mconcat $ map HTML.li whtml
-			forM_ errors $ applyAttrs [[(T.pack "class", T.pack "error")]] eattr . HTML.span
-			forM_ hint $ applyAttrs [[(T.pack "class", T.pack "hint")]] hattr . HTML.span . toHtml
-
-label_value :: Text -> Label -> Html
-label_value _ (Label s) = HTML.span $ toHtml s
-label_value _ (InlineLabel s) = toHtml s
-label_value d (DefaultLabel) = label_value d (Label d)
-
-legend_value :: Text -> Label -> Html
-legend_value _ (Label s) = HTML.legend $ toHtml s
-legend_value d (InlineLabel s) = legend_value d (Label s)
-legend_value d (DefaultLabel) = legend_value d (Label d)
+		options = opt
+	}

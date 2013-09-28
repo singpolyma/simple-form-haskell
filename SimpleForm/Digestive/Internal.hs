@@ -28,6 +28,7 @@ import Text.Digestive.Types
 import Text.Digestive.View
 
 import SimpleForm
+import SimpleForm.Render
 
 type SimpleFormEnv r = (Maybe r, View Html, (RenderOptions -> Html))
 

@@ -33,6 +33,7 @@ import qualified Text.Blaze.XHtml5 as HTML
 import Text.Digestive.View
 import Text.Digestive.Form.Internal (Metadata(Disabled), lookupFormMetadata)
 import SimpleForm
+import SimpleForm.Render
 import SimpleForm.Digestive.Internal
 
 -- | Render a 'SimpleForm' to 'Html'
