@@ -24,10 +24,11 @@ render opt@(RenderOptions {
 			label_html = lattr
 		}
 	}) =
-		applyAttrs [
-			[(T.pack "class", T.pack "disabled") | d],
-			[(T.pack "class", T.pack "required") | r]
-		] wattr $ HTML.label $ do
+		applyAttrs (
+			maybeCons d (T.pack "class", T.pack "disabled") $
+			maybeCons r (T.pack "class", T.pack "required")
+			[]
+		) wattr $ HTML.label $ do
 			forM_ lbl $ applyAttrs [] lattr . label_value (humanize n)
 			whtml
 			hintAndError opt
@@ -42,10 +43,11 @@ render opt@(RenderOptions {
 			wrapper_html = wattr
 		}
 	}) =
-		applyAttrs [
-			[(T.pack "class", T.pack "disabled") | d],
-			[(T.pack "class", T.pack "required") | r]
-		] wattr $ (if errorsOrHint then HTML.div else id) $ do
+		applyAttrs (
+			maybeCons d (T.pack "class", T.pack "disabled") $
+			maybeCons r (T.pack "class", T.pack "required")
+			[]
+		) wattr $ (if errorsOrHint then HTML.div else id) $ do
 			whtml
 			hintAndError opt
 	where
@@ -62,11 +64,12 @@ render opt@(RenderOptions {
 			label_html = lattr
 		}
 	}) =
-		applyAttrs [
-			[(T.pack "disabled", T.pack "disabled") | d],
-			[(T.pack "class", T.pack "disabled") | d],
-			[(T.pack "class", T.pack "required") | r]
-		] wattr $ HTML.fieldset $ do
+		applyAttrs (
+			maybeCons d (T.pack "disabled", T.pack "disabled") $
+			maybeCons d (T.pack "class", T.pack "disabled") $
+			maybeCons r (T.pack "class", T.pack "required")
+			[]
+		) wattr $ HTML.fieldset $ do
 			forM_ lbl $ applyAttrs [] lattr . legend_value (humanize n)
 			HTML.ul $ mconcat $ map HTML.li whtml
 			hintAndError opt
@@ -80,8 +83,8 @@ hintAndError (RenderOptions {
 			error_html = eattr
 		}
 	}) = do
-		forM_ errors $ applyAttrs [[(T.pack "class", T.pack "error")]] eattr . HTML.span
-		forM_ hint $ applyAttrs [[(T.pack "class", T.pack "hint")]] hattr . HTML.span . toHtml
+		forM_ errors $ applyAttrs [(T.pack "class", T.pack "error")] eattr . HTML.span
+		forM_ hint $ applyAttrs [(T.pack "class", T.pack "hint")] hattr . HTML.span . toHtml
 
 label_value :: Text -> Label -> Html
 label_value _ (Label s) = HTML.span (toHtml s) `mappend` toHtml " "

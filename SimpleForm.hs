@@ -48,6 +48,7 @@ module SimpleForm (
 	group_,
 	multiEnum,
 	humanize,
+	maybeCons,
 	applyAttrs
 ) where
 
@@ -326,22 +327,21 @@ boundedIntegral v u n =
 
 textarea :: Widget Text
 textarea v u n (InputOptions {disabled = d, required = r, input_html =    iattrs}) = Input $
-	applyAttrs [
-		[(T.pack "disabled", T.pack "disabled") | d],
-		[(T.pack "required", T.pack "required") | r],
-		[(T.pack "rows", T.pack "10")],
-		[(T.pack "cols", T.pack "55")]
-	] iattrs (
+	applyAttrs (
+		maybeCons d (T.pack "disabled", T.pack "disabled") $
+		maybeCons r (T.pack "required", T.pack "required")
+		[(T.pack "rows", T.pack "10"),(T.pack "cols", T.pack "55")]
+	) iattrs (
 		HTML.textarea ! HTML.name (toValue n) $
 			maybe mempty HTML.toHtml (v <|> u)
 	)
 
 button :: Widget Text
 button v _ n (InputOptions {label = l, disabled = d, input_html = iattrs}) = SelfLabelInput $
-	applyAttrs [
-		[(T.pack "disabled", T.pack "disabled") | d],
+	applyAttrs (
+		maybeCons d (T.pack "disabled", T.pack "disabled")
 		[(T.pack "type", T.pack "submit")]
-	] iattrs $ maybe id (\v' h -> h ! HTML.value (toValue v')) v (
+	) iattrs $ maybe id (\v' h -> h ! HTML.value (toValue v')) v (
 		HTML.button ! HTML.name (toValue n) $
 			maybe mempty (HTML.toHtml . getLabel) l
 	)
@@ -390,10 +390,11 @@ datetime_local v u n =
 
 select :: GroupedCollection -> Widget Text
 select collection v _ n (InputOptions {disabled = d, required = r, input_html = iattrs}) = Input $
-	applyAttrs [
-		[(T.pack "disabled", T.pack "disabled") | d],
-		[(T.pack "required", T.pack "required") | r]
-	] iattrs (
+	applyAttrs (
+		maybeCons d (T.pack "disabled", T.pack "disabled") $
+		maybeCons r (T.pack "required", T.pack "required")
+		[]
+	) iattrs (
 		HTML.select ! HTML.name (toValue n) $
 			formatCollection $ \subCollection ->
 				forM_ subCollection $ \(value, label) ->
@@ -412,10 +413,11 @@ select collection v _ n (InputOptions {disabled = d, required = r, input_html = 
 
 multi_select :: GroupedCollection -> Widget [Text]
 multi_select collection v _ n (InputOptions {disabled = d, required = r, input_html = iattrs}) = Input $
-	applyAttrs [
-		[(T.pack "disabled", T.pack "disabled") | d],
-		[(T.pack "required", T.pack "required") | r]
-	] iattrs (
+	applyAttrs (
+		maybeCons d (T.pack "disabled", T.pack "disabled") $
+		maybeCons r (T.pack "required", T.pack "required")
+		[]
+	) iattrs (
 		HTML.select ! HTML.name (toValue n) ! HTML.multiple (toValue "multiple") $
 			formatCollection $ \subCollection ->
 				forM_ subCollection $ \(value, label) ->
@@ -477,15 +479,18 @@ input_tag ::
 	-> InputOptions    -- ^ Attributes from options override defaults
 	-> Html
 input_tag n v t dattr (InputOptions {disabled = d, required = r, input_html = iattrs}) =
-	applyAttrs [
-		[(T.pack "disabled", T.pack "disabled") | d],
-		[(T.pack "required", T.pack "required") | r],
-		[(T.pack "type", t)],
-		concat dattr
-	] iattrs $ maybe id (\v' h -> h ! HTML.value (toValue v')) v (
+	applyAttrs (
+		maybeCons d (T.pack "disable", T.pack "disabled") $
+		maybeCons r (T.pack "required", T.pack "required") $
+		(T.pack "type", t) : concat dattr
+	) iattrs $ maybe id (\v' h -> h ! HTML.value (toValue v')) v (
 		HTML.input !
 			HTML.name (toValue n)
 	)
+
+maybeCons :: Bool -> a -> [a] -> [a]
+maybeCons True x = (x:)
+maybeCons False _ = id
 
 mkSelected :: Bool -> Html -> Html
 mkSelected True = (! HTML.selected (toValue "selected"))
@@ -500,7 +505,7 @@ mkAttribute (k,v) = HTML.customAttribute (HTML.textTag k) (toValue v)
 
 -- | Apply a list of default attributes and user overrides to some 'Html'
 applyAttrs ::
-	[[(Text,Text)]]  -- ^ Defaults
+	[(Text,Text)]  -- ^ Defaults
 	-> [(Text,Text)] -- ^ User overrides
 	-> Html          -- ^ Apply attributes to this 'Html'
 	-> Html
@@ -511,4 +516,4 @@ applyAttrs dattr cattr html = foldl' (!) html (map mkAttribute attrs)
 		| null classes = attrs'
 		| otherwise = (T.pack "class", T.unwords classes):attrs'
 	classes = concatMap (T.words . snd) $ filter ((== T.pack "class") . fst) attrs'
-	attrs' = cattr ++ concat dattr
+	attrs' = cattr ++ dattr
