@@ -1,7 +1,21 @@
 {-# LANGUAGE GADTs #-}
 -- | Torn from the internals of digestive-functors
-module SimpleForm.Digestive.Internal (getField, subView', fieldInputChoiceGroup') where
+module SimpleForm.Digestive.Internal (
+	SimpleForm(..),
+	SimpleFormEnv,
+	input',
+	getField,
+	subView',
+	fieldInputChoiceGroup'
+) where
 
+import Data.Monoid
+import Control.Applicative
+import Control.Monad
+import Control.Monad.Fix
+import Text.Blaze.Html (Html)
+import Control.Monad.Trans.Reader
+import Control.Monad.Trans.Writer
 import Data.List (isPrefixOf)
 import Data.Functor.Identity (Identity)
 import Control.Arrow (second)
@@ -12,6 +26,72 @@ import Text.Digestive.Form.Internal
 import Text.Digestive.Form.Internal.Field
 import Text.Digestive.Types
 import Text.Digestive.View
+
+import SimpleForm
+
+type SimpleFormEnv r = (Maybe r, View Html, (RenderOptions -> Html))
+
+-- | The type of a form
+newtype SimpleForm r a = SimpleForm (ReaderT (SimpleFormEnv r) (Writer Html) a)
+
+instance Functor (SimpleForm r) where
+	fmap = liftM
+
+instance Applicative (SimpleForm r) where
+	pure = return
+	(<*>) = ap
+
+instance Monad (SimpleForm r) where
+	return = SimpleForm . return
+	(SimpleForm x) >>= f = SimpleForm (x >>= (\v -> let SimpleForm r = f v in r))
+	fail = SimpleForm . fail
+
+instance MonadFix (SimpleForm r) where
+	mfix f = SimpleForm (mfix $ unSimpleForm . f)
+		where
+		unSimpleForm (SimpleForm form) = form
+
+instance (Monoid a) => Monoid (SimpleForm r a) where
+	mempty = SimpleForm $ ReaderT (\_ -> tell mempty >> return mempty)
+	(SimpleForm a) `mappend` (SimpleForm b) = SimpleForm $ ReaderT $ \env -> do
+		a' <- runReaderT a env
+		b' <- runReaderT b env
+		return (a' `mappend` b')
+
+input' ::
+	Text              -- ^ Form element name
+	-> (r -> Maybe a) -- ^ Get value from parsed data
+	-> Widget a       -- ^ Widget to use (such as 'SimpleForm.wdef')
+	-> InputOptions   -- ^ Other options
+	-> SimpleFormEnv r
+	-> Html
+input' n sel w opt (env, view@(View {viewForm = form}), render) =
+	render $ renderOptions
+		(maybe Nothing sel env) unparsed (pathToText apth) w errors $
+			opt {
+				disabled = disabled opt || Disabled `elem` metadata
+			}
+	where
+	apth = case absolutePath n view of
+		(p:ps)
+			| T.null p -> ps
+			| otherwise -> p:ps
+		_ -> []
+	metadata = concatMap snd $ lookupFormMetadata [n] form
+	errors = map snd $ filter ((==[n]) . fst) $ viewErrors view
+	unparsed = getField [n] view
+
+-- | Format form paths just like PHP/Rails
+pathToText :: [Text] -> Text
+pathToText [] = mempty
+pathToText [p] = p
+pathToText (p:ps) = mconcat (p : concatMap fragment ps)
+	where
+	fragment n = [
+			T.singleton '[',
+			n,
+			T.singleton ']'
+		]
 
 getField :: Path -> View v -> Maybe Text
 getField pth (View _ _ form input _ method) =

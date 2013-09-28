@@ -19,7 +19,7 @@ module SimpleForm (
 	password,
 	search,
 	email,
-	url,
+	uri,
 	tel,
 	-- ** Numbers
 	number,
@@ -163,7 +163,7 @@ monoidOr a b
 humanize :: Text -> Text
 humanize = id -- TODO
 
--- | Infer a widget based on type
+-- | Infer a 'Widget' based on type
 class DefaultWidget a where
 	wdef :: Widget a
 	wdefList :: Widget [a]
@@ -297,8 +297,8 @@ search v u n = Input . input_tag n (v <|> u) (T.pack "search") []
 email :: Widget Text
 email v u n = Input . input_tag n (v <|> u) (T.pack "email") []
 
-url :: Widget Text
-url v u n = Input . input_tag n (v <|> u) (T.pack "url") []
+uri :: Widget Text
+uri v u n = Input . input_tag n (v <|> u) (T.pack "url") []
 
 tel :: Widget Text
 tel v u n = Input . input_tag n (v <|> u) (T.pack "tel") []
