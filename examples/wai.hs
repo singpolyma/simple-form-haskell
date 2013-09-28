@@ -1,3 +1,4 @@
+-- This example also depends on wai-digestive-functors
 module Main (main) where
 
 import Control.Applicative
