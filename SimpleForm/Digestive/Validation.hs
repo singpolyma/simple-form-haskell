@@ -2,7 +2,7 @@ module SimpleForm.Digestive.Validation where
 
 import Data.Monoid
 import Control.Arrow (second)
-import Text.Blaze.Html (Html, ToMarkup, toHtml)
+import Text.Blaze.Html (Html, toHtml)
 import Text.Digestive.Form (Form, text, validate, groupedChoiceWith, (.:))
 import Text.Digestive.Types (Result(..))
 import Data.Text (Text)
