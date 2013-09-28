@@ -1,6 +1,7 @@
-*.[ao]
+dist
+*.o
 *.hi
-*.swp*
-dist/*
 report.html
-dist-ghc/*
+examples/wai
+examples/html-only
+examples/combined
