@@ -117,4 +117,6 @@ wrap f (SimpleForm reader) = SimpleForm $ ReaderT $ \env ->
 
 -- | Like 'withFields', but also wrap in fieldset tag
 fieldset :: Maybe Text -> (r' -> r) -> SimpleForm r a -> SimpleForm r' a
-fieldset n f = wrap HTML.fieldset . withFields n f
+fieldset n f form = wrap HTML.fieldset $ do
+	maybe (return ()) (toForm . HTML.legend . toHtml . humanize) n
+	withFields n f form

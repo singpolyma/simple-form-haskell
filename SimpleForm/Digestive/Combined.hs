@@ -3,7 +3,6 @@ module SimpleForm.Digestive.Combined (
 	SimpleForm,
 	getSimpleForm,
 	postSimpleForm,
-	simpleForm,
 	simpleForm',
 	-- * Create forms
 	input,
@@ -11,6 +10,7 @@ module SimpleForm.Digestive.Combined (
 	toForm,
 	-- * Subforms
 	withFields,
+	withFields',
 	wrap,
 	fieldset
 ) where
@@ -27,7 +27,8 @@ import Text.Blaze.Html (Html)
 import Text.Digestive.View
 import Text.Digestive.Form
 import Text.Digestive.Types (Env)
-import SimpleForm.Digestive (toForm, withFields, wrap, fieldset, simpleForm, simpleForm')
+import SimpleForm.Digestive (toForm, wrap, simpleForm')
+import qualified SimpleForm.Digestive (withFields, fieldset)
 import SimpleForm.Combined
 import SimpleForm.Digestive.Internal
 import SimpleForm.Digestive.Validation
@@ -89,3 +90,27 @@ input_ :: (DefaultWidget a, DefaultValidation a, Eq a, Monad m) =>
 	-> (r -> Maybe a)           -- ^ Get value from parsed data
 	-> SimpleForm r (Form Html m a)
 input_ n sel = input n sel (wdef,vdef) mempty
+
+-- | Project out some part of the parsed data (does not add name to subview)
+withFields' ::
+	Maybe Text     -- ^ Optional subview name
+	-> (r' -> r)   -- ^ Projection function
+	-> SimpleForm r a
+	-> SimpleForm r' a
+withFields' = SimpleForm.Digestive.withFields
+
+-- | Project out some part of the parsed data and name the subview
+withFields :: (Monad m) =>
+	Text           -- ^ Optional subview name
+	-> (r' -> r)   -- ^ Projection function
+	-> SimpleForm r (Form Html m a)
+	-> SimpleForm r' (Form Html m a)
+withFields n f = fmap (n .:) . withFields' (Just n) f
+
+-- | Like 'withFields'', but also wrap in fieldset tag
+fieldset' :: Maybe Text -> (r' -> r) -> SimpleForm r a -> SimpleForm r' a
+fieldset' = SimpleForm.Digestive.fieldset
+
+-- | Like 'withFields', but also wrap in fieldset tag
+fieldset :: (Monad m) => Text -> (r' -> r) -> SimpleForm r (Form Html m a) -> SimpleForm r' (Form Html m a)
+fieldset n f = fmap (n .:) . fieldset' (Just n) f
