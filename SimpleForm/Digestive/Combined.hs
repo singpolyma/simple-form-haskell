@@ -3,6 +3,7 @@
 -- The Combined module both renders to 'Html' and also parses input.
 module SimpleForm.Digestive.Combined (
 	SimpleForm,
+	SimpleForm',
 	postSimpleForm,
 	getSimpleForm,
 	simpleForm',
@@ -37,14 +38,17 @@ import SimpleForm.Digestive.Validation
 
 import SimpleForm.Render
 
+-- | Convenience type synonym for combined forms
+type SimpleForm' m a = SimpleForm a (Form Html m a)
+
 -- | Render a 'SimpleForm' to 'Html'
 --
 -- This produces the contents of the form, but you must still wrap it in
 -- the actual \<form\> element.
 getSimpleForm :: (Monad m) =>
 	Renderer
-	-> Maybe a                      -- ^ Default values for the form
-	-> SimpleForm a (Form Html m a) -- ^ The simple form to render
+	-> Maybe a         -- ^ Default values for the form
+	-> SimpleForm' m a -- ^ The simple form to render
 	-> m Html
 getSimpleForm render val form = do
 		view <- getForm T.empty initialForm
@@ -62,8 +66,8 @@ getSimpleForm render val form = do
 -- the actual \<form\> element.
 postSimpleForm :: (Monad m) =>
 	Renderer
-	-> m (Env m)                    -- ^ The digestive-functors input environment
-	-> SimpleForm a (Form Html m a) -- ^ The simple form to render
+	-> m (Env m)       -- ^ The digestive-functors input environment
+	-> SimpleForm' m a -- ^ The simple form to render
 	-> m (Html, Maybe a)
 postSimpleForm render env form = do
 		env' <- env
