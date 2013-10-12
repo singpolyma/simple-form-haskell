@@ -16,6 +16,7 @@ render :: Renderer
 render opt@(RenderOptions {
 		name = n,
 		widgetHtml = Input whtml,
+		errors = errors,
 		options = InputOptions {
 			label = lbl,
 			disabled = d,
@@ -25,6 +26,7 @@ render opt@(RenderOptions {
 		}
 	}) =
 		applyAttrs (
+			maybeCons (not $ null errors) (T.pack "class", T.pack "error") $
 			maybeCons d (T.pack "class", T.pack "disabled") $
 			maybeCons r (T.pack "class", T.pack "required")
 			[]
@@ -44,6 +46,7 @@ render opt@(RenderOptions {
 		}
 	}) =
 		applyAttrs (
+			maybeCons (not $ null errors) (T.pack "class", T.pack "error") $
 			maybeCons d (T.pack "class", T.pack "disabled") $
 			maybeCons r (T.pack "class", T.pack "required")
 			[]
@@ -56,6 +59,7 @@ render opt@(RenderOptions {
 render opt@(RenderOptions {
 		name = n,
 		widgetHtml = MultiInput whtml,
+		errors = errors,
 		options = InputOptions {
 			label = lbl,
 			disabled = d,
@@ -65,6 +69,7 @@ render opt@(RenderOptions {
 		}
 	}) =
 		applyAttrs (
+			maybeCons (not $ null errors) (T.pack "class", T.pack "error") $
 			maybeCons d (T.pack "disabled", T.pack "disabled") $
 			maybeCons d (T.pack "class", T.pack "disabled") $
 			maybeCons r (T.pack "class", T.pack "required")
