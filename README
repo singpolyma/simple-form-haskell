@@ -1,2 +1,6 @@
 Inspired by the RubyGem of the same name, this package allows you to
 easily build validating forms that infer defaults based on type.
+
+Most users will want to both render 'Html' and parse input, and so
+should use the SimpleForm.Digestive.Combined and SimpleForm.Combined
+modules.

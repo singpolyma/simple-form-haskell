@@ -1,3 +1,4 @@
+-- | These utilities are for writing 'Renderer's
 module SimpleForm.Render (
 	Renderer,
 	Input(..),

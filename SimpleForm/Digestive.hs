@@ -1,4 +1,7 @@
 -- | SimpleForm implementation that works along with digestive-functors
+--
+-- This module is for constructing forms that only output to 'Html'.
+-- For forms that also parse input, see SimpleForm.Digestive.Combined
 module SimpleForm.Digestive (
 	SimpleForm,
 	simpleForm,

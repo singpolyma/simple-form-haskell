@@ -1,4 +1,7 @@
 -- | Forms that configure themselves based on type
+--
+-- This module is for constructing forms that only output to 'Html'.
+-- For forms that also parse input, see SimpleForm.Combined
 module SimpleForm (
 	Widget,
 	DefaultWidget(..),

@@ -32,7 +32,7 @@ import SimpleForm.Render
 
 type SimpleFormEnv r = (Maybe r, View Html, (RenderOptions -> Html))
 
--- | The type of a form
+-- | A form for producing something of type r
 newtype SimpleForm r a = SimpleForm (ReaderT (SimpleFormEnv r) (Writer Html) a)
 
 instance Functor (SimpleForm r) where

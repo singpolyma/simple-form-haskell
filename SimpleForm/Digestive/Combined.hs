@@ -1,8 +1,10 @@
 -- | SimpleForm implementation that works along with digestive-functors
+--
+-- The Combined module both renders to 'Html' and also parses input.
 module SimpleForm.Digestive.Combined (
 	SimpleForm,
-	getSimpleForm,
 	postSimpleForm,
+	getSimpleForm,
 	simpleForm',
 	-- * Create forms
 	input,
@@ -54,11 +56,13 @@ getSimpleForm render val form = do
 
 -- | Render a 'SimpleForm' to 'Html' in the presence of input
 --
--- This produces the contents of the form, but you must still wrap it in
+-- This also parses the input to the correct datatype.
+--
+-- The 'Html' is the contents of the form, but you must still wrap it in
 -- the actual \<form\> element.
 postSimpleForm :: (Monad m) =>
 	Renderer
-	-> m (Env m)
+	-> m (Env m)                    -- ^ The digestive-functors input environment
 	-> SimpleForm a (Form Html m a) -- ^ The simple form to render
 	-> m (Html, Maybe a)
 postSimpleForm render env form = do
@@ -101,7 +105,7 @@ withFields' = SimpleForm.Digestive.withFields
 
 -- | Project out some part of the parsed data and name the subview
 withFields :: (Monad m) =>
-	Text           -- ^ Optional subview name
+	Text           -- ^ Subview name
 	-> (r' -> r)   -- ^ Projection function
 	-> SimpleForm r (Form Html m a)
 	-> SimpleForm r' (Form Html m a)

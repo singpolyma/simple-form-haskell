@@ -1,4 +1,6 @@
 -- | Forms that configure themselves based on type
+--
+-- The Combined module both renders to 'Html' and also parses input.
 module SimpleForm.Combined (
 	Widget,
 	DefaultWidget(..),
