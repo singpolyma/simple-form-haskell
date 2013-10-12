@@ -205,7 +205,7 @@ instance DefaultWidget TimeOfDay where
 	wdef = time
 
 instance (Integral a, Show a) => DefaultWidget (Ratio a) where
-	wdef = number
+	wdef = number . fmap (\x -> realToFrac x :: Double)
 
 instance (DefaultWidget a, DefaultWidget b) => DefaultWidget (a, b) where
 	wdef v u n opt = wdef (fmap fst v) u n opt `mappend` wdef (fmap snd v) u n opt
