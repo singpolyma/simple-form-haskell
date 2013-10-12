@@ -70,9 +70,12 @@ input' n sel w opt (env, view@(View {viewForm = form}), render) =
 	render $ renderOptions
 		(maybe Nothing sel env) unparsed (pathToText apth) w errors $
 			opt {
+				label = defaultLabel (label opt),
 				disabled = disabled opt || Disabled `elem` metadata
 			}
 	where
+	defaultLabel (Just DefaultLabel) = Just $ Label $ humanize n
+	defaultLabel x = x
 	apth = case absolutePath n view of
 		(p:ps)
 			| T.null p -> ps
