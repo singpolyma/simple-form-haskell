@@ -43,6 +43,7 @@ module SimpleForm.Combined (
 	select,
 	multi_select,
 	radio_buttons,
+	buttons,
 	checkboxes,
 	-- * Helpers
 	selectEnum,
@@ -156,6 +157,12 @@ multi_select collection = (
 radio_buttons :: GroupedCollection' a -> (Widget Text, Validation a)
 radio_buttons collection = (
 		SimpleForm.radio_buttons (Validation.viewGroupedCollection collection),
+		Validation.includes collection
+	)
+
+buttons :: GroupedCollection' a -> (Widget Text, Validation a)
+buttons collection = (
+		SimpleForm.buttons (Validation.viewGroupedCollection collection),
 		Validation.includes collection
 	)
 

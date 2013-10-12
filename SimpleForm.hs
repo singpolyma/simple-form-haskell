@@ -43,6 +43,7 @@ module SimpleForm (
 	select,
 	multi_select,
 	radio_buttons,
+	buttons,
 	checkboxes,
 	-- * Helpers
 	input_tag,
@@ -446,6 +447,23 @@ radio_buttons collection v _ n opt =
 		mkChecked (Just value == v) $
 			input_tag n (Just value) (T.pack "radio") [] opt
 		HTML.toHtml label
+	formatCollection f
+		| length collection == 1 && fst (head collection) == mempty =
+			f (snd $ head collection)
+		| otherwise =
+			(`map` collection) $ \(group, subCollection) ->
+				HTML.fieldset $ do
+					HTML.legend $ HTML.toHtml group
+					mconcat (f subCollection)
+
+buttons :: GroupedCollection -> Widget Text
+buttons collection _ u n opt =
+	MultiInput $ formatCollection $ map go
+	where
+	go (value, label) =
+		let SelfLabelInput html =
+			button (Just value) u n (opt {label = Just $ Label label})
+		in html
 	formatCollection f
 		| length collection == 1 && fst (head collection) == mempty =
 			f (snd $ head collection)
