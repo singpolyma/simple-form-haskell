@@ -1,5 +1,5 @@
 name:            simple-form
-version:         0.3
+version:         0.4
 cabal-version:   >= 1.8
 license:         OtherLicense
 license-file:    COPYING
@@ -33,7 +33,8 @@ library
                 SimpleForm.Combined,
                 SimpleForm.Validation,
                 SimpleForm.Render,
-                SimpleForm.Render.XHTML5
+                SimpleForm.Render.XHTML5,
+                SimpleForm.Render.Bootstrap3
 
         other-modules:
                 SimpleForm.Digestive.Internal

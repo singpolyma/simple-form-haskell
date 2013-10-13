@@ -1,6 +1,6 @@
 GHCFLAGS=-Wall -XNoCPP -fno-warn-name-shadowing -XHaskell98 -O2
 HLINTFLAGS=-XHaskell98 -XNoCPP -i 'Use camelCase' -i 'Use String' -i 'Use head' -i 'Use string literal' -i 'Use list comprehension' --utf8
-VERSION=0.3
+VERSION=0.4
 
 .PHONY: all shell clean doc install
 
@@ -12,7 +12,7 @@ install: dist/build/libHSsimple-form-$(VERSION).a
 shell:
 	ghci $(GHCFLAGS)
 
-report.html: SimpleForm.hs SimpleForm/Digestive.hs SimpleForm/Digestive/Combined.hs SimpleForm/Digestive/Validation.hs SimpleForm/Combined.hs SimpleForm/Validation.hs SimpleForm/Render.hs SimpleForm/Render/XHTML5.hs SimpleForm/Digestive/Internal.hs
+report.html: SimpleForm.hs SimpleForm/Digestive.hs SimpleForm/Digestive/Combined.hs SimpleForm/Digestive/Validation.hs SimpleForm/Combined.hs SimpleForm/Validation.hs SimpleForm/Render.hs SimpleForm/Render/XHTML5.hs SimpleForm/Render/Bootstrap3.hs SimpleForm/Digestive/Internal.hs
 	-hlint $(HLINTFLAGS) --report $^
 
 doc: dist/doc/html/simple-form/index.html README
@@ -23,7 +23,7 @@ README: simple-form.cabal
 	-printf ',s/        //g\n,s/^.$$//g\n,s/\\\\\\//\\//g\nw\nq\n' | ed $@
 	$(RM) .$@
 
-dist/doc/html/simple-form/index.html: dist/setup-config SimpleForm.hs SimpleForm/Digestive.hs SimpleForm/Digestive/Combined.hs SimpleForm/Digestive/Validation.hs SimpleForm/Combined.hs SimpleForm/Validation.hs SimpleForm/Render.hs SimpleForm/Render/XHTML5.hs SimpleForm/Digestive/Internal.hs
+dist/doc/html/simple-form/index.html: dist/setup-config SimpleForm.hs SimpleForm/Digestive.hs SimpleForm/Digestive/Combined.hs SimpleForm/Digestive/Validation.hs SimpleForm/Combined.hs SimpleForm/Validation.hs SimpleForm/Render.hs SimpleForm/Render/XHTML5.hs SimpleForm/Render/Bootstrap3.hs SimpleForm/Digestive/Internal.hs
 	cabal haddock --hyperlink-source
 
 dist/setup-config: simple-form.cabal
@@ -33,9 +33,9 @@ clean:
 	find -name '*.o' -o -name '*.hi' | xargs $(RM)
 	$(RM) -r dist
 
-dist/build/libHSsimple-form-$(VERSION).a: dist/setup-config SimpleForm.hs SimpleForm/Digestive.hs SimpleForm/Digestive/Combined.hs SimpleForm/Digestive/Validation.hs SimpleForm/Combined.hs SimpleForm/Validation.hs SimpleForm/Render.hs SimpleForm/Render/XHTML5.hs SimpleForm/Digestive/Internal.hs
+dist/build/libHSsimple-form-$(VERSION).a: dist/setup-config SimpleForm.hs SimpleForm/Digestive.hs SimpleForm/Digestive/Combined.hs SimpleForm/Digestive/Validation.hs SimpleForm/Combined.hs SimpleForm/Validation.hs SimpleForm/Render.hs SimpleForm/Render/XHTML5.hs SimpleForm/Render/Bootstrap3.hs SimpleForm/Digestive/Internal.hs
 	cabal build --ghc-options="$(GHCFLAGS)"
 
-dist/simple-form-$(VERSION).tar.gz: README dist/setup-config SimpleForm.hs SimpleForm/Digestive.hs SimpleForm/Digestive/Combined.hs SimpleForm/Digestive/Validation.hs SimpleForm/Combined.hs SimpleForm/Validation.hs SimpleForm/Render.hs SimpleForm/Render/XHTML5.hs SimpleForm/Digestive/Internal.hs
+dist/simple-form-$(VERSION).tar.gz: README dist/setup-config SimpleForm.hs SimpleForm/Digestive.hs SimpleForm/Digestive/Combined.hs SimpleForm/Digestive/Validation.hs SimpleForm/Combined.hs SimpleForm/Validation.hs SimpleForm/Render.hs SimpleForm/Render/XHTML5.hs SimpleForm/Render/Bootstrap3.hs SimpleForm/Digestive/Internal.hs
 	cabal check
 	cabal sdist
