@@ -38,6 +38,7 @@ module SimpleForm.Validation (
 ) where
 
 import Prelude hiding (read)
+import Data.Fixed (Fixed, HasResolution)
 import Control.Arrow (first, second)
 import Control.Monad
 import Data.Monoid
@@ -116,6 +117,9 @@ instance DefaultValidation Float where
 	vdef = read
 
 instance DefaultValidation Double where
+	vdef = read
+
+instance (HasResolution a) => DefaultValidation (Fixed a) where
 	vdef = read
 
 instance DefaultValidation UTCTime where

@@ -57,6 +57,7 @@ module SimpleForm (
 ) where
 
 import Data.Maybe
+import Data.Fixed (Fixed, HasResolution)
 import Data.Char (isUpper)
 import Data.Monoid
 import Data.Ratio
@@ -188,6 +189,9 @@ instance DefaultWidget Float where
 	wdef = number
 
 instance DefaultWidget Double where
+	wdef = number
+
+instance (HasResolution a) => DefaultWidget (Fixed a) where
 	wdef = number
 
 instance DefaultWidget UTCTime where
