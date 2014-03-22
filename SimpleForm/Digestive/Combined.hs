@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 -- | SimpleForm implementation that works along with digestive-functors
 --
 -- The Combined module both renders to 'Html' and also parses input.
@@ -70,8 +71,12 @@ postSimpleForm :: (Monad m) =>
 	-> SimpleForm' m a -- ^ The simple form to render
 	-> m (Html, Maybe a)
 postSimpleForm render env form = do
+#if MIN_VERSION_digestive_functors(0,7,0)
+		(view, val) <- postForm T.empty initialForm (const env)
+#else
 		env' <- env
 		(view, val) <- postForm T.empty initialForm env'
+#endif
 		let html = snd $ simpleForm' render (view, val) form
 		return (html, val)
 	where
