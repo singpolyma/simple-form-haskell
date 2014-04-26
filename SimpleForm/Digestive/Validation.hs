@@ -1,4 +1,4 @@
-module SimpleForm.Digestive.Validation where
+module SimpleForm.Digestive.Validation (validationToForm, underRef) where
 
 import Data.Monoid
 import Control.Arrow (second)
@@ -7,6 +7,7 @@ import Text.Digestive.Form (Form, text, validate, groupedChoiceWith, (.:))
 import Text.Digestive.Types (Result(..))
 import Data.Text (Text)
 import SimpleForm.Validation (Validation(..))
+import SimpleForm.Digestive.Internal (underRef)
 
 validationToForm :: (Eq a, Monad m) => Text -> Validation a -> Form Html m a
 validationToForm n (Check chk) = n .: validate (maybeErr . chk . (:[])) (text Nothing)

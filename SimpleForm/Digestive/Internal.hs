@@ -6,7 +6,8 @@ module SimpleForm.Digestive.Internal (
 	input',
 	getField,
 	subView',
-	fieldInputChoiceGroup'
+	fieldInputChoiceGroup',
+	underRef
 ) where
 
 import Data.Monoid
@@ -168,3 +169,7 @@ subView' path (View name ctx form input errs method) =
 	notFound :: FormTree Identity v Identity a
 	notFound = error $ "Text.Digestive.View.subView: " ++
 		"No such subView: " ++ show path
+
+underRef :: (Form v m a -> Form v m b) -> Form v m a -> Form v m b
+underRef f (Ref r x) = Ref r (f x)
+underRef f form = f form
