@@ -54,11 +54,13 @@ module SimpleForm.Combined (
 ) where
 
 import Data.Time (FormatTime, ParseTime)
-import Text.Email.Validate (EmailAddress)
 import Network.URI (URI)
+import Text.Email.Validate (EmailAddress)
+import qualified Text.Email.Validate as EmailAddress
 
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
 
 import SimpleForm (DefaultWidget, Widget, InputOptions(..), Label(..), ShowRead(..), unShowRead, SelectEnum(..), unSelectEnum, humanize)
 import SimpleForm.Validation (DefaultValidation, Validation(..), selectEnum, GroupedCollection', Collection', group_)
@@ -68,7 +70,7 @@ import qualified SimpleForm.Validation as Validation
 -- Orphan instances, but for our own classes
 
 instance DefaultWidget EmailAddress where
-	wdef = SimpleForm.email . fmap (T.pack . show)
+	wdef = SimpleForm.email . fmap (T.decodeUtf8 . EmailAddress.toByteString)
 
 instance DefaultWidget URI where
 	wdef = SimpleForm.email . fmap (T.pack . show)
@@ -95,7 +97,7 @@ search :: (Widget Text, Validation Text)
 search = (SimpleForm.search, Validation.text)
 
 email :: (Widget EmailAddress, Validation EmailAddress)
-email = (SimpleForm.email . fmap (T.pack . show), Validation.email)
+email = (SimpleForm.email . fmap (T.decodeUtf8 . EmailAddress.toByteString), Validation.email)
 
 uri :: (Widget URI, Validation URI)
 uri = (SimpleForm.uri . fmap (T.pack . show), Validation.uri)
